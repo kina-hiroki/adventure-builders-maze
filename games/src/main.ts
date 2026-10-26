@@ -30,7 +30,7 @@ app.innerHTML = `
     <section class="viewer-card" aria-labelledby="viewer-title">
       <div class="viewer-heading"><h2 id="viewer-title">3Dプレビュー</h2><span class="viewer-legend"><i class="start-dot"></i> 入口 A7 <i class="goal-dot"></i> 出口 G7</span></div>
       <div id="maze-stage" class="maze-stage"></div>
-      <p id="navigation-help" class="navigation-help">ドラッグで回転 · ホイールで拡大 · 右ドラッグで移動<span>タッチ操作：1本指で回転、2本指で拡大・移動</span></p>
+      <p id="navigation-help" class="navigation-help">ドラッグで回転 · ホイールで拡大 · 右ドラッグで移動<br>白い板にカーソルを合わせる・タップで説明（キーボード：迷路を選択してEnter、Escで閉じる）<span>タッチ操作：1本指で回転、2本指で拡大・移動</span></p>
     </section>
     <section class="settings" aria-labelledby="settings-title">
       <div class="section-heading"><h2 id="settings-title">表示設定</h2><p>見たい角度と表示に調整できます。</p></div>

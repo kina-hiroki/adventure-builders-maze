@@ -75,6 +75,8 @@ npm.cmd run dev -- --host 127.0.0.1 --port 5173 --strictPort
 | 拡大・縮小 | マウスホイール、または拡大率スライダー |
 | 平行移動 | 右ドラッグ。迷路にフォーカスした状態では矢印キーも使用可能 |
 | タッチ操作 | 1本指で回転、2本指で拡大・移動 |
+| 白い板の説明 | 板にマウスを合わせる、またはタップ。板以外をタップ・視点操作で閉じる |
+| キーボードで板の説明 | 迷路にフォーカスしてEnter、Escで閉じる |
 | 初期の視点へ戻す | 「全体表示に戻す」ボタン |
 
 全体表示へ戻しても、正解ルート・透かし・縦の点線・窓・人物の表示状態は保持します。
@@ -164,6 +166,7 @@ GitHub Pagesの公開設定が完了した後のURLは `https://kina-hiroki.gith
    │  │  ├─ outerWallWindows.ts # 外周窓の形状の割り当て
    │  │  └─ analyzeMaze.ts   # 通路・経路・整合性の解析
    │  └─ three/
+   │     ├─ attachPartTooltip.ts # 部品の説明・マウスとタップの判定
    │     ├─ createMazeView.ts # 3D描画・カメラ・リソースの解放
    │     ├─ createScalePerson.ts # 身長130cmの人物と配置
    │     └─ createWindowWallGeometry.ts # 窓が貫通した壁の形状

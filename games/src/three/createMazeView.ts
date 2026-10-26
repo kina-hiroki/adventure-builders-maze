@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { attachPartTooltip } from './attachPartTooltip.ts';
 import { createScalePerson, scalePersonPosition } from './createScalePerson.ts';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { cellPoint, wallKey } from '../maze/analyzeMaze.ts';
@@ -238,6 +239,8 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   dimension(world(7.4, 0, 6.5), world(7.4, h, 6.5), '1.5 m', new THREE.Vector3(0.42, 0.1, 0));
   scene.add(dimensions);
 
+  const partTooltip = attachPartTooltip(container, renderer.domElement, scene, camera, frontBoard);
+
   let disposed = false;
   let resizeFrame = 0;
   let lastWidth = 0;
@@ -251,6 +254,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     const w = Math.round(bounds.width);
     const ht = Math.round(bounds.height);
     if (w <= 0 || ht <= 0 || (w === lastWidth && ht === lastHeight)) return;
+    partTooltip.hide();
     lastWidth = w;
     lastHeight = ht;
     const aspect = w / ht;
@@ -281,6 +285,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     render();
   }
   const changed = () => {
+    partTooltip.hide();
     angle = (THREE.MathUtils.radToDeg(controls.getAzimuthalAngle()) + 360) % 360;
     onChange(Math.round(angle) % 360, Math.round(camera.zoom * 100));
     render();
@@ -340,6 +345,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       resizeFrame = 0;
       controls.removeEventListener('change', changed);
       controls.dispose();
+      partTooltip.dispose();
       const geometries = new Set<THREE.BufferGeometry>();
       const materials = new Set<THREE.Material>();
       scene.traverse(object => {
