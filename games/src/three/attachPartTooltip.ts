@@ -1,32 +1,41 @@
 import * as THREE from 'three';
 
+interface TooltipPart {
+  part: THREE.Object3D;
+  id: string;
+  size?: string;
+  description: string;
+}
+
 export function attachPartTooltip(container: HTMLElement, canvas: HTMLCanvasElement,
-  scene: THREE.Scene, camera: THREE.Camera, part: THREE.Mesh) {
+  scene: THREE.Scene, camera: THREE.Camera, parts: TooltipPart[]) {
   const events = new AbortController();
   const tooltip = document.createElement('div');
   tooltip.className = 'part-tooltip';
-  tooltip.id = 'front-board-tooltip';
   tooltip.setAttribute('role', 'tooltip');
   tooltip.hidden = true;
   const size = document.createElement('p');
   size.className = 'part-tooltip-size';
-  size.textContent = '高さ 1.5 m × 幅 5 m';
   const description = document.createElement('p');
-  description.textContent = '子供たちに絵を書いてもらった段ボールを配置';
   tooltip.append(size, description);
   container.appendChild(tooltip);
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
   const presses = new Map<number, { x: number; y: number; moved: boolean }>();
   const originalDescription = canvas.getAttribute('aria-describedby') ?? '';
+  let keyboardIndex = -1;
 
   function hide() {
     tooltip.hidden = true;
     canvas.style.cursor = '';
     canvas.setAttribute('aria-describedby', originalDescription);
   }
-  function show(clientX: number, clientY: number) {
+  function show(target: TooltipPart, clientX: number, clientY: number) {
     const bounds = container.getBoundingClientRect();
+    tooltip.id = target.id;
+    size.textContent = target.size ?? '';
+    size.hidden = !target.size;
+    description.textContent = target.description;
     tooltip.hidden = false;
     const x = Math.max(8, Math.min(clientX - bounds.left + 14, bounds.width - tooltip.offsetWidth - 8));
     const above = clientY - bounds.top - tooltip.offsetHeight - 16;
@@ -38,9 +47,9 @@ export function attachPartTooltip(container: HTMLElement, canvas: HTMLCanvasElem
     canvas.style.cursor = 'pointer';
     canvas.setAttribute('aria-describedby', `${originalDescription} ${tooltip.id}`.trim());
   }
-  function isPartAt(clientX: number, clientY: number) {
+  function partAt(clientX: number, clientY: number) {
     const bounds = canvas.getBoundingClientRect();
-    if (!bounds.width || !bounds.height) return false;
+    if (!bounds.width || !bounds.height) return undefined;
     pointer.set((clientX - bounds.left) / bounds.width * 2 - 1,
       -(clientY - bounds.top) / bounds.height * 2 + 1);
     scene.updateMatrixWorld(true);
@@ -49,10 +58,18 @@ export function attachPartTooltip(container: HTMLElement, canvas: HTMLCanvasElem
     // 裏側から壁越しに反応させず、実際に見えている一番手前の面を調べる。
     const meshes: THREE.Mesh[] = [];
     scene.traverseVisible(object => { if (object instanceof THREE.Mesh) meshes.push(object); });
-    return raycaster.intersectObjects(meshes, false)[0]?.object === part;
+    let hit: THREE.Object3D | null = raycaster.intersectObjects(meshes, false)[0]?.object ?? null;
+    // 壁に貼った〇✕の記号に当たった場合も、親のクイズ壁を対象にする。
+    while (hit) {
+      const target = parts.find(target => target.part === hit);
+      if (target) return target;
+      hit = hit.parent;
+    }
+    return undefined;
   }
   function inspect(clientX: number, clientY: number) {
-    if (isPartAt(clientX, clientY)) show(clientX, clientY);
+    const target = partAt(clientX, clientY);
+    if (target) show(target, clientX, clientY);
     else hide();
   }
   canvas.addEventListener('pointerdown', event => {
@@ -80,9 +97,17 @@ export function attachPartTooltip(container: HTMLElement, canvas: HTMLCanvasElem
     if (event.key === 'Escape') hide();
     if (event.key === 'Enter') {
       event.preventDefault();
-      const center = part.getWorldPosition(new THREE.Vector3()).project(camera);
+      const visibleParts = parts.filter(({ part }) => {
+        for (let object: THREE.Object3D | null = part; object; object = object.parent)
+          if (!object.visible) return false;
+        return true;
+      });
+      if (!visibleParts.length) { hide(); return; }
+      keyboardIndex = (keyboardIndex + 1) % visibleParts.length;
+      const target = visibleParts[keyboardIndex];
+      const center = target.part.getWorldPosition(new THREE.Vector3()).project(camera);
       const bounds = canvas.getBoundingClientRect();
-      show(bounds.left + (center.x + 1) * bounds.width / 2,
+      show(target, bounds.left + (center.x + 1) * bounds.width / 2,
         bounds.top + (1 - center.y) * bounds.height / 2);
     }
   }, { signal: events.signal });

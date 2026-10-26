@@ -25,11 +25,13 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     `${wall.cell}の上辺に${wall.symbol === '✕' ? '赤い✕（行き止まり）' : '青い〇（正解）'}の半透明の壁。`).join('');
   let windowsVisible = true;
   let personVisible = true;
+  let quizVisible = true;
   function updateDescription() {
     renderer.domElement.setAttribute('aria-label', mazeDescription
       + (windowsVisible ? windowDescription : '窓なし。')
       + (personVisible ? personDescription : '人物は非表示。')
-      + '正面の壁に高さ1.5m・幅5mの白い板。' + quizDescription);
+      + '正面の壁に高さ1.5m・幅5mの白い板。'
+      + (quizVisible ? quizDescription : '○×クイズは非表示。'));
   }
   updateDescription();
   renderer.domElement.setAttribute('tabindex', '0');
@@ -301,7 +303,12 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   dimension(world(7.4, 0, 6.5), world(7.4, h, 6.5), '1.5 m', new THREE.Vector3(0.42, 0.1, 0));
   scene.add(dimensions);
 
-  const partTooltip = attachPartTooltip(container, renderer.domElement, scene, camera, frontBoard);
+  const partTooltip = attachPartTooltip(container, renderer.domElement, scene, camera, [
+    { part: frontBoard, id: 'front-board-tooltip', size: '高さ 1.5 m × 幅 5 m',
+      description: '子供たちに絵を書いてもらった段ボールを配置' },
+    ...quizWalls.children.map((part, index) => ({ part, id: `quiz-wall-tooltip-${index}`,
+      description: '○×クイズ' })),
+  ]);
 
   let disposed = false;
   let resizeFrame = 0;
@@ -383,6 +390,13 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     setPerson(value: boolean) {
       person.visible = value;
       personVisible = value;
+      updateDescription();
+      render();
+    },
+    setQuiz(value: boolean) {
+      partTooltip.hide();
+      quizWalls.visible = value;
+      quizVisible = value;
       updateDescription();
       render();
     },

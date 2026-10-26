@@ -30,7 +30,7 @@ app.innerHTML = `
     <section class="viewer-card" aria-labelledby="viewer-title">
       <div class="viewer-heading"><h2 id="viewer-title">3Dプレビュー</h2><span class="viewer-legend"><i class="start-dot"></i> 入口 A7 <i class="goal-dot"></i> 出口 G7</span></div>
       <div id="maze-stage" class="maze-stage"></div>
-      <p id="navigation-help" class="navigation-help">ドラッグで回転 · ホイールで拡大 · 右ドラッグで移動<br>白い板にカーソルを合わせる・タップで説明（キーボード：迷路を選択してEnter、Escで閉じる）<span>タッチ操作：1本指で回転、2本指で拡大・移動</span></p>
+      <p id="navigation-help" class="navigation-help">ドラッグで回転 · ホイールで拡大 · 右ドラッグで移動<br>白い板・○×クイズにカーソルを合わせる・タップで説明（キーボード：迷路を選択してEnterで説明を切り替え、Escで閉じる）<span>タッチ操作：1本指で回転、2本指で拡大・移動</span></p>
     </section>
     <section class="settings" aria-labelledby="settings-title">
       <div class="section-heading"><h2 id="settings-title">表示設定</h2><p>見たい角度と表示に調整できます。</p></div>
@@ -42,6 +42,7 @@ app.innerHTML = `
       <div class="setting-row toggle-row"><div><label for="wall-grid">壁に1m間隔の縦の点線を表示</label><p>壁パネルの区切りを確認できます。</p></div><input id="wall-grid" type="checkbox" role="switch"></div>
       <div class="setting-row toggle-row"><div><label for="show-windows">外壁の窓を表示</label><p>正面以外の3面を、窓あり／窓なしに切り替えます。</p></div><input id="show-windows" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-person">人物を表示</label><p>入口の左横に身長130cmの人物を表示し、大きさを比較できます。</p></div><input id="show-person" type="checkbox" role="switch" checked></div>
+      <div class="setting-row toggle-row"><div><label for="show-quiz">○×クイズを表示</label><p>F2・G2の上辺にある赤✕・青〇の透かし壁を表示します。</p></div><input id="show-quiz" type="checkbox" role="switch" checked></div>
       <div class="setting-actions"><button id="reset-view" type="button">全体表示に戻す <span aria-hidden="true">↗</span></button><p id="view-status" role="status" aria-live="polite">斜めから全体を表示しています。</p></div>
     </section>
     </div>
@@ -93,6 +94,7 @@ const loader = loadView({
     bind('wall-grid', 'change', () => view!.setWallGrid(element<HTMLInputElement>('wall-grid').checked));
     bind('show-windows', 'change', () => view!.setWindows(element<HTMLInputElement>('show-windows').checked));
     bind('show-person', 'change', () => view!.setPerson(element<HTMLInputElement>('show-person').checked));
+    bind('show-quiz', 'change', () => view!.setQuiz(element<HTMLInputElement>('show-quiz').checked));
     bind('reset-view', 'click', () => { mode.value = 'angled'; view!.reset(); status.textContent = '斜めからの全体表示に戻しました。'; });
     setBusy(false);
     status.textContent = '斜めから全体を表示しています。';
