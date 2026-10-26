@@ -25,7 +25,8 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   function updateDescription() {
     renderer.domElement.setAttribute('aria-label', mazeDescription
       + (windowsVisible ? windowDescription : '窓なし。')
-      + (personVisible ? personDescription : '人物は非表示。'));
+      + (personVisible ? personDescription : '人物は非表示。')
+      + '正面の壁に高さ1.5m・幅5mの白い板。');
   }
   updateDescription();
   renderer.domElement.setAttribute('tabindex', '0');
@@ -136,6 +137,14 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       }
     }
   }
+  // 正面のB7〜F7に密着させ、両端の入口A7・出口G7を空けておく。
+  const frontBoardThickness = 0.02; // 板厚の指定がないため、表示用に2cmとする。
+  const frontBoardMaterial = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 });
+  wallMaterials.push(frontBoardMaterial);
+  const frontBoard = new THREE.Mesh(new THREE.BoxGeometry(5, 1.5, frontBoardThickness), frontBoardMaterial);
+  frontBoard.name = 'front-art-board';
+  frontBoard.position.set(0, 0.75, depth / 2 + thickness / 2 + frontBoardThickness / 2);
+  walls.add(frontBoard);
   scene.add(walls);
   const wallGrid = new THREE.LineSegments(
     new THREE.BufferGeometry().setFromPoints([...verticalMarkers.values()].flat()),
