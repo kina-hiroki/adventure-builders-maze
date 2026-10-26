@@ -16,7 +16,7 @@ export const pattern01: MazePlan = {
     "F2–G2",
     "F3–G3"
   ],
-  "quizPanels": [
+  "quizWalls": [
     { "cell": "F2", "edge": "top", "symbol": "✕", "color": "#dc2626" },
     { "cell": "G2", "edge": "top", "symbol": "〇", "color": "#2563eb" }
   ],

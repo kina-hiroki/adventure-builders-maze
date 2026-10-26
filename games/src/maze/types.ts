@@ -1,6 +1,6 @@
 export type Point = readonly [number, number];
 export type Wall = { from: Point; to: Point };
-export interface QuizPanel {
+export interface QuizWall {
   cell: string;
   edge: 'top';
   symbol: '〇' | '✕';
@@ -20,6 +20,6 @@ export interface MazePlan {
   sourceSha256: string;
   addedWalls: string[];
   walls: Wall[];
-  quizPanels: QuizPanel[];
+  quizWalls: QuizWall[];
   solution: string[];
 }
