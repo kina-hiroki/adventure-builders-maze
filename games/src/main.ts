@@ -34,7 +34,7 @@ app.innerHTML = `
     </section>
     <section class="settings" aria-labelledby="settings-title">
       <div class="section-heading"><h2 id="settings-title">表示設定</h2><p>見たい角度と表示に調整できます。</p></div>
-      <div class="setting-row toggle-row"><div><label for="show-solution">正解ルートを表示</label><p>入口から出口までの通り道をオレンジ色で表示します。</p></div><input id="show-solution" type="checkbox" role="switch"></div>
+      <div class="setting-row toggle-row"><div><label for="show-solution">正解ルートを表示</label><p>入口から出口までの通り道を、床から75cmの高さにオレンジ色の点線で表示します。</p></div><input id="show-solution" type="checkbox" role="switch"></div>
       <div class="setting-row"><label for="view-mode">視点</label><select id="view-mode"><option value="angled">斜めから</option><option value="top">真上から</option><option value="side">真横から（自由回転）</option><option value="front">正面から</option><option value="right">右側から</option><option value="back">背面から</option><option value="left">左側から</option></select></div>
       <div class="setting-row"><label for="rotation">回転 <output id="rotation-value" for="rotation">45°</output></label><input id="rotation" type="range" min="0" max="359" step="1" value="45"></div>
       <div class="setting-row"><label for="zoom">拡大率 <output id="zoom-value" for="zoom">100%</output></label><input id="zoom" type="range" min="100" max="300" step="10" value="100"></div>
