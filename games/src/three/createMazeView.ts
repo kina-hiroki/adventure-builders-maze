@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { attachPartTooltip } from './attachPartTooltip.ts';
 import { createScalePerson, scalePersonPosition } from './createScalePerson.ts';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Line2 } from 'three/addons/lines/Line2.js';
+import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { cellPoint, wallKey } from '../maze/analyzeMaze.ts';
 import { createOuterWallWindows } from '../maze/outerWallWindows.ts';
 import type { WindowShape } from '../maze/outerWallWindows.ts';
@@ -276,8 +279,10 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   const routePoints = [world(0.5, solutionHeight, 7.35),
     ...plan.solution.map(cell => { const [x, z] = cellPoint(cell); return world(x + 0.5, solutionHeight, z + 0.5); }),
     world(6.5, solutionHeight, 7.35)];
-  const route = new THREE.Line(new THREE.BufferGeometry().setFromPoints(routePoints),
-    new THREE.LineDashedMaterial({ color: '#e88128', dashSize: 0.14, gapSize: 0.1 }));
+  const routeGeometry = new LineGeometry().setPositions(routePoints.flatMap(point => point.toArray()));
+  const route = new Line2(routeGeometry, new LineMaterial({ color: '#e88128',
+    worldUnits: true, linewidth: 0.04, dashed: true, dashSize: 0.22, gapSize: 0.12,
+    alphaToCoverage: true }));
   route.computeLineDistances();
   solution.add(route);
   solution.visible = false;
