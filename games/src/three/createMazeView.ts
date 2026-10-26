@@ -215,7 +215,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   solution.visible = false;
   scene.add(solution);
 
-  for (const [x, color, text] of [[0, '#25836b', 'S · A7'], [6, '#bf584b', 'G · G7']] as const) {
+  for (const [x, color, text] of [[0, '#25836b', 'START'], [6, '#bf584b', 'GOAL']] as const) {
     const marker = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.86),
       new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, depthWrite: false }));
     marker.rotation.x = -Math.PI / 2;
