@@ -48,7 +48,7 @@ npm.cmd ci
 npm.cmd run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-[http://127.0.0.1:5173/](http://127.0.0.1:5173/) をブラウザーで開きます。
+[http://127.0.0.1:5173/adventure-builders-maze/](http://127.0.0.1:5173/adventure-builders-maze/) をブラウザーで開きます。
 `npm.cmd ci` は初回取得時や依存関係の入れ直し時に実行します。導入済みで変更がなければ再実行は不要です。
 以降のnpmコマンドも `games/` で実行します。
 
@@ -83,7 +83,17 @@ npm.cmd run build
 npm.cmd run preview -- --host 127.0.0.1 --port 4173 --strictPort
 ```
 
-[http://127.0.0.1:4173/](http://127.0.0.1:4173/) を開きます。プレビューはローカル確認用です。
+[http://127.0.0.1:4173/adventure-builders-maze/](http://127.0.0.1:4173/adventure-builders-maze/) を開きます。プレビューはローカル確認用です。
+
+## GitHub Pages向けのパス設定
+
+[vite.config.ts](games/vite.config.ts) の `base` を `/adventure-builders-maze/` に設定しています。
+開発サーバー・ビルド後のプレビューでも、このパスを使用します。
+この設定を追加する前から開発サーバーを起動していた場合は、再起動して設定を読み込み直してください。
+ホームと参照PDFへのリンクは `import.meta.env.BASE_URL` を使用し、公開先のパスに合わせます。
+設定方法は [Viteの公開パスの説明](https://vite.dev/guide/build.html#public-base-path) を参照してください。
+
+GitHub Pagesの公開設定が完了した後のURLは `https://kina-hiroki.github.io/adventure-builders-maze/` です。
 
 ## プロジェクト構成
 
@@ -96,6 +106,7 @@ npm.cmd run preview -- --host 127.0.0.1 --port 4173 --strictPort
    ├─ package.json
    ├─ package-lock.json       # 依存関係の固定
    ├─ tsconfig.json
+   ├─ vite.config.ts          # GitHub Pages向けの公開パス
    ├─ index.html             # ページの入口
    ├─ src/
    │  ├─ main.ts             # 画面と表示設定の連携
@@ -121,4 +132,4 @@ npm.cmd run preview -- --host 127.0.0.1 --port 4173 --strictPort
 - ビルド時にJavaScriptのチャンクが500kBを超える警告が出ます。型チェック・ビルドは成功しています。
 - E2E自動テストは未導入です。実機のタッチ操作とWebGL 2非対応端末での確認は未実施です。
 - 壁配置の編集・資材計算は未実装です。
-- GitHub Pages向けの公開パス設定と自動公開ワークフローは未追加です。
+- GitHub Pages向けの自動公開ワークフローは未追加です。

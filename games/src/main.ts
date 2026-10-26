@@ -12,7 +12,7 @@ if (analysis.route.join(' ') !== pattern01.solution.join(' ')) throw new Error('
 app.innerHTML = `
   <main class="page">
     <header class="page-header">
-      <a class="brand" href="/" aria-label="Adventure Builders ホーム"><span class="brand-mark" aria-hidden="true">AB</span> ADVENTURE BUILDERS</a>
+      <a class="brand" href="${import.meta.env.BASE_URL}" aria-label="Adventure Builders ホーム"><span class="brand-mark" aria-hidden="true">AB</span> ADVENTURE BUILDERS</a>
       <span class="header-caption">集会の裏で冒険仕込む仲間</span>
     </header>
     <section class="intro" aria-labelledby="page-title">
@@ -43,7 +43,7 @@ app.innerHTML = `
       <div class="setting-actions"><button id="reset-view" type="button">全体表示に戻す <span aria-hidden="true">↗</span></button><p id="view-status" role="status" aria-live="polite">斜めから全体を表示しています。</p></div>
     </section>
     </div>
-    <aside class="source-note" aria-label="取り込んだ図面の情報"><div><strong>取り込んだ迷路案</strong><p>パターン01 · F2–G2間／F3–G3間の壁追加を反映</p><p class="route-summary">正解ルート ${analysis.route.length}セル · 曲がり角 ${analysis.turns}回 · 分岐 ${analysis.branches}か所</p></div><a href="/reference/pattern01.pdf" target="_blank" rel="noopener">元の平面図を見る <span aria-hidden="true">↗</span></a></aside>
+    <aside class="source-note" aria-label="取り込んだ図面の情報"><div><strong>取り込んだ迷路案</strong><p>パターン01 · F2–G2間／F3–G3間の壁追加を反映</p><p class="route-summary">正解ルート ${analysis.route.length}セル · 曲がり角 ${analysis.turns}回 · 分岐 ${analysis.branches}か所</p></div><a href="${import.meta.env.BASE_URL}reference/pattern01.pdf" target="_blank" rel="noopener">元の平面図を見る <span aria-hidden="true">↗</span></a></aside>
     <footer class="page-footer">ADVENTURE BUILDERS <span>小さな段ボールから、大きな冒険を。</span></footer>
   </main>`;
 
