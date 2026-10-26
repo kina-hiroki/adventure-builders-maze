@@ -16,7 +16,9 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.domElement.setAttribute('role', 'img');
-  renderer.domElement.setAttribute('aria-label', 'パターン01、7m×7m、壁高1.5mの迷路。入口A7、出口G7。外壁に丸・正方形・ひし形の窓。');
+  const mazeDescription = `${plan.name}、${plan.columns * plan.cellSize}m×${plan.rows * plan.cellSize}m、壁高${plan.wallHeight}mの迷路。入口${plan.entry}、出口${plan.exit}。`;
+  const windowDescription = '正面を除く外壁に丸・正方形・ひし形の窓。';
+  renderer.domElement.setAttribute('aria-label', mazeDescription + windowDescription);
   renderer.domElement.setAttribute('tabindex', '0');
   renderer.domElement.setAttribute('aria-describedby', 'navigation-help');
   container.appendChild(renderer.domElement);
@@ -62,6 +64,12 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   const [sideMaterial, addedMaterial, topMaterial] = wallMaterials;
   const walls = new THREE.Group();
   walls.name = 'maze-walls';
+  const windowedWalls = new THREE.Group();
+  windowedWalls.name = 'windowed-outer-walls';
+  const solidWindowWalls = new THREE.Group();
+  solidWindowWalls.name = 'solid-outer-walls';
+  solidWindowWalls.visible = false;
+  walls.add(windowedWalls, solidWindowWalls);
   const outerWindows = createOuterWallWindows(plan);
   const windowGeometries = new Map<WindowShape, THREE.ExtrudeGeometry>();
   const windowOutlines = new Map<WindowShape, THREE.BufferGeometry>();
@@ -98,7 +106,17 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     mesh.position.copy(world((wall.from[0] + wall.to[0]) / 2, h / 2,
       (wall.from[1] + wall.to[1]) / 2));
     mesh.name = windowShape ? `outer-wall-${windowShape}-window` : added ? 'added-wall' : 'wall';
-    walls.add(mesh);
+    if (windowShape) {
+      windowedWalls.add(mesh);
+      const solidMesh = new THREE.Mesh(new THREE.BoxGeometry(plan.cellSize, h, thickness),
+        [material, material, topMaterial, material, material, material]);
+      solidMesh.rotation.copy(mesh.rotation);
+      solidMesh.position.copy(mesh.position);
+      solidMesh.name = 'closed-outer-wall';
+      solidWindowWalls.add(solidMesh);
+    } else {
+      walls.add(mesh);
+    }
     for (const [x, z] of [wall.from, wall.to]) {
       for (const sign of [-1, 1]) {
         const offset = sign * (thickness / 2 + 0.003);
@@ -263,6 +281,12 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     setAngle(value: number) { angle = value; updatePosition(); },
     setZoom(value: number) { camera.zoom = value / 100; camera.updateProjectionMatrix(); controls.update(); changed(); },
     setSolution(value: boolean) { solution.visible = value; render(); },
+    setWindows(value: boolean) {
+      windowedWalls.visible = value;
+      solidWindowWalls.visible = !value;
+      renderer.domElement.setAttribute('aria-label', mazeDescription + (value ? windowDescription : '窓なし。'));
+      render();
+    },
     setTransparent(value: boolean) {
       for (const material of wallMaterials) {
         material.transparent = value;

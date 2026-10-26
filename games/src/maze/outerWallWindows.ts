@@ -20,5 +20,10 @@ export function createOuterWallWindows(plan: MazePlan): Map<string, WindowShape>
     const other = Math.floor(state / 0x100000000 * (index + 1));
     [assigned[index], assigned[other]] = [assigned[other], assigned[index]];
   }
-  return new Map(keys.map((key, index) => [key, assigned[index]]));
+  const windows = new Map(keys.map((key, index) => [key, assigned[index]]));
+  // 他の3面の形を変えずに、入口・出口がある正面だけを窓の対象から外す。
+  for (const wall of plan.walls) {
+    if (wall.from[1] === plan.rows && wall.to[1] === plan.rows) windows.delete(wallKey(wall));
+  }
+  return windows;
 }

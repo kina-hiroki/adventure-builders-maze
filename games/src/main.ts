@@ -18,7 +18,7 @@ app.innerHTML = `
     <section class="intro" aria-labelledby="page-title">
       <div><p class="eyebrow">CARDBOARD MAZE / 01</p><h1 id="page-title">パターン01<span>迷路を、立体で。</span></h1>
       <p class="lead">平面図の壁配置をそのまま3Dへ。視点を変えて、通路と全体の形を確かめられます。</p></div>
-      <span class="revision-badge"><span aria-hidden="true">●</span> 外壁に3種類の窓を追加</span>
+      <span class="revision-badge"><span aria-hidden="true">●</span> 左右・背面に3種類の窓</span>
     </section>
     <dl class="specs" aria-label="迷路の仕様">
       <div><dt>縦 × 横</dt><dd>7 <span>×</span> 7 <small>m</small></dd></div>
@@ -40,6 +40,7 @@ app.innerHTML = `
       <div class="setting-row"><label for="zoom">拡大率 <output id="zoom-value" for="zoom">100%</output></label><input id="zoom" type="range" min="100" max="300" step="10" value="100"></div>
       <div class="setting-row toggle-row"><div><label for="transparent-walls">壁を透かす</label><p>奥の通路や、壁に隠れた正解ルートを確認できます。</p></div><input id="transparent-walls" type="checkbox" role="switch"></div>
       <div class="setting-row toggle-row"><div><label for="wall-grid">壁に1m間隔の縦の点線を表示</label><p>壁パネルの区切りを確認できます。</p></div><input id="wall-grid" type="checkbox" role="switch"></div>
+      <div class="setting-row toggle-row"><div><label for="show-windows">外壁の窓を表示</label><p>正面以外の3面を、窓あり／窓なしに切り替えます。</p></div><input id="show-windows" type="checkbox" role="switch" checked></div>
       <div class="setting-actions"><button id="reset-view" type="button">全体表示に戻す <span aria-hidden="true">↗</span></button><p id="view-status" role="status" aria-live="polite">斜めから全体を表示しています。</p></div>
     </section>
     </div>
@@ -75,6 +76,7 @@ try {
   bind('zoom', 'input', () => view!.setZoom(Number(zoom.value)));
   bind('transparent-walls', 'change', () => view!.setTransparent(element<HTMLInputElement>('transparent-walls').checked));
   bind('wall-grid', 'change', () => view!.setWallGrid(element<HTMLInputElement>('wall-grid').checked));
+  bind('show-windows', 'change', () => view!.setWindows(element<HTMLInputElement>('show-windows').checked));
   bind('reset-view', 'click', () => { mode.value = 'angled'; view!.reset(); status.textContent = '斜めからの全体表示に戻しました。'; });
 } catch (error) {
   stage.innerHTML = '<p class="viewer-error" role="alert">3D表示を開始できませんでした。WebGL 2が有効なEdgeやChromeで開き直してください。</p>';
