@@ -323,7 +323,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     { part: frontBoard, id: 'front-board-tooltip', size: '高さ 1.5 m × 幅 5 m',
       description: '子供たちに絵を書いてもらった段ボールを配置' },
     ...quizWalls.children.map((part, index) => ({ part, id: `quiz-wall-tooltip-${index}`,
-      description: '○×クイズ' })),
+      description: '○×クイズ：〇✕クイズを出題し、クイズの回答に応じて進むルートを選んでもらう。' })),
   ]);
 
   let disposed = false;
