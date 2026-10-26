@@ -21,13 +21,15 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   const mazeDescription = `${plan.name}、${plan.columns * plan.cellSize}m×${plan.rows * plan.cellSize}m、壁高${plan.wallHeight}mの迷路。入口${plan.entry}、出口${plan.exit}。`;
   const windowDescription = '正面を除く外壁に丸・正方形・ひし形の窓。';
   const personDescription = '入口の左横に身長130cmの人物。';
+  const quizDescription = plan.quizPanels.map(panel =>
+    `${panel.cell}の上辺に${panel.symbol === '✕' ? '赤い✕（行き止まり）' : '青い〇（正解）'}パネル。`).join('');
   let windowsVisible = true;
   let personVisible = true;
   function updateDescription() {
     renderer.domElement.setAttribute('aria-label', mazeDescription
       + (windowsVisible ? windowDescription : '窓なし。')
       + (personVisible ? personDescription : '人物は非表示。')
-      + '正面の壁に高さ1.5m・幅5mの白い板。');
+      + '正面の壁に高さ1.5m・幅5mの白い板。' + quizDescription);
   }
   updateDescription();
   renderer.domElement.setAttribute('tabindex', '0');
@@ -203,6 +205,42 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       scene.add(tag);
     }
   }
+  const quizPanels = new THREE.Group();
+  quizPanels.name = 'quiz-panels';
+  for (const panel of plan.quizPanels) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 256;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('クイズパネルの描画領域を作成できません。');
+    context.fillStyle = panel.color;
+    context.fillRect(0, 0, 256, 256);
+    context.strokeStyle = '#ffffff';
+    context.lineWidth = 20;
+    context.lineCap = 'round';
+    context.beginPath();
+    if (panel.symbol === '〇') {
+      context.arc(128, 128, 72, 0, Math.PI * 2);
+    } else {
+      context.moveTo(66, 66);
+      context.lineTo(190, 190);
+      context.moveTo(190, 66);
+      context.lineTo(66, 190);
+    }
+    context.stroke();
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    textures.push(texture);
+    // 各セルの上辺中央。案内板は壁の上に掲げ、全視点で記号を読めるようにする。
+    // 寸法の指定がないため、表示用に一辺60cmとする。
+    const sign = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, toneMapped: false }));
+    const [x, z] = cellPoint(panel.cell);
+    sign.position.copy(world(x + 0.5, h + 0.35, z));
+    sign.scale.set(0.6, 0.6, 1);
+    sign.name = `quiz-panel-${panel.cell}-${panel.symbol}`;
+    quizPanels.add(sign);
+  }
+  scene.add(quizPanels);
+
   const solution = new THREE.Group();
   solution.name = 'solution';
   const routeCurve = new THREE.CurvePath<THREE.Vector3>();
