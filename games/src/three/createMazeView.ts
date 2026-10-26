@@ -71,6 +71,22 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     new THREE.LineBasicMaterial({ color: '#c9c3b6', transparent: true, opacity: 0.65 }));
   scene.add(grid);
 
+  // 1mの実線を残し、各マスの中央に0.5mマス用の補助点線を重ねる。
+  const halfMetrePoints: THREE.Vector3[] = [];
+  for (let x = 0.5; x < plan.columns; x++) {
+    halfMetrePoints.push(world(x, 0.004, 0), world(x, 0.004, plan.rows));
+  }
+  for (let z = 0.5; z < plan.rows; z++) {
+    halfMetrePoints.push(world(0, 0.004, z), world(plan.columns, 0.004, z));
+  }
+  const halfMetreGrid = new THREE.LineSegments(
+    new THREE.BufferGeometry().setFromPoints(halfMetrePoints),
+    new THREE.LineDashedMaterial({ color: '#a89f90', dashSize: 0.035, gapSize: 0.045,
+      transparent: true, opacity: 0.8 }));
+  halfMetreGrid.name = 'half-metre-floor-grid';
+  halfMetreGrid.computeLineDistances();
+  scene.add(halfMetreGrid);
+
   const wallMaterials = [
     new THREE.MeshStandardMaterial({ color: '#d1aa74', roughness: 0.95 }),
     new THREE.MeshStandardMaterial({ color: '#bd8d52', roughness: 0.95 }),
