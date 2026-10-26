@@ -272,13 +272,14 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
 
   const solution = new THREE.Group();
   solution.name = 'solution';
-  const routeCurve = new THREE.CurvePath<THREE.Vector3>();
-  const routePoints = [world(0.5, 0.045, 7.35),
-    ...plan.solution.map(cell => { const [x, z] = cellPoint(cell); return world(x + 0.5, 0.045, z + 0.5); }),
-    world(6.5, 0.045, 7.35)];
-  for (let i = 1; i < routePoints.length; i++) routeCurve.add(new THREE.LineCurve3(routePoints[i - 1], routePoints[i]));
-  solution.add(new THREE.Mesh(new THREE.TubeGeometry(routeCurve, 450, 0.035, 6, false),
-    new THREE.MeshBasicMaterial({ color: '#e88128' })));
+  const solutionHeight = 0.75; // 床から75cmの高さにそろえる。
+  const routePoints = [world(0.5, solutionHeight, 7.35),
+    ...plan.solution.map(cell => { const [x, z] = cellPoint(cell); return world(x + 0.5, solutionHeight, z + 0.5); }),
+    world(6.5, solutionHeight, 7.35)];
+  const route = new THREE.Line(new THREE.BufferGeometry().setFromPoints(routePoints),
+    new THREE.LineDashedMaterial({ color: '#e88128', dashSize: 0.14, gapSize: 0.1 }));
+  route.computeLineDistances();
+  solution.add(route);
   solution.visible = false;
   scene.add(solution);
 
