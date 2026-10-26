@@ -95,10 +95,42 @@ npm.cmd run preview -- --host 127.0.0.1 --port 4173 --strictPort
 
 GitHub Pagesの公開設定が完了した後のURLは `https://kina-hiroki.github.io/adventure-builders-maze/` です。
 
+## 自動公開ワークフロー
+
+[deploy.yml](.github/workflows/deploy.yml) に、GitHub Actionsの自動公開処理を定義しています。
+`main` へのプッシュ、またはActions画面からの手動操作で実行します。
+
+処理の順番は次のとおりです。
+
+1. Ubuntu上にNode.js 24を用意し、`games/package-lock.json` に基づいてnpmのキャッシュを使用
+2. `games/` で `npm ci` を実行して依存ライブラリを導入
+3. `npm test` で単体テストを実行
+4. `npm run build` で型チェックとビルドを実行
+5. `games/dist/` を公開用の成果物としてアップロード
+6. 公開する実行では、`build` 成功後に `deploy` でGitHub Pagesへ公開
+
+手動実行時に「GitHub Pagesへ公開する」のチェックを外すと、公開せずにテスト・ビルドと成果物の作成だけを確認できます。
+手動で公開する場合も、ブランチは `main` を選択します。
+使用するGitHub公式ActionsはコミットSHAで固定しています。
+
+### 初回公開の実施手順
+
+1. リポジトリの **Settings → Pages → Build and deployment → Source** で **GitHub Actions** を選択
+2. **Actions → Deploy to GitHub Pages → Run workflow** を開く
+3. ブランチを `main` にし、「GitHub Pagesへ公開する」にチェックを入れて **Run workflow** を実行
+4. `build` と `deploy` が成功したことを確認
+5. 表示された公開URLで、迷路・各設定・ホームへの移動・元図PDFを確認
+
+以後は `main` へのプッシュ時に自動で更新します。
+初回公開の設定方法は [GitHubの公式手順](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-with-a-custom-github-actions-workflow) も参照してください。
+
 ## プロジェクト構成
 
 ```text
 .
+├─ .github/
+│  └─ workflows/
+│     └─ deploy.yml           # テスト・ビルド・GitHub Pagesへの公開
 ├─ AGENTS.md                  # 作業ルール・確認手順
 ├─ README.md
 └─ games/
@@ -132,4 +164,3 @@ GitHub Pagesの公開設定が完了した後のURLは `https://kina-hiroki.gith
 - ビルド時にJavaScriptのチャンクが500kBを超える警告が出ます。型チェック・ビルドは成功しています。
 - E2E自動テストは未導入です。実機のタッチ操作とWebGL 2非対応端末での確認は未実施です。
 - 壁配置の編集・資材計算は未実装です。
-- GitHub Pages向けの自動公開ワークフローは未追加です。
