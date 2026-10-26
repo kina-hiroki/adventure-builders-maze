@@ -41,6 +41,7 @@ app.innerHTML = `
       <div class="setting-row toggle-row"><div><label for="transparent-walls">壁を透かす</label><p>奥の通路や、壁に隠れた正解ルートを確認できます。</p></div><input id="transparent-walls" type="checkbox" role="switch"></div>
       <div class="setting-row toggle-row"><div><label for="wall-grid">壁に1m間隔の縦の点線を表示</label><p>壁パネルの区切りを確認できます。</p></div><input id="wall-grid" type="checkbox" role="switch"></div>
       <div class="setting-row toggle-row"><div><label for="show-windows">外壁の窓を表示</label><p>正面以外の3面を、窓あり／窓なしに切り替えます。</p></div><input id="show-windows" type="checkbox" role="switch" checked></div>
+      <div class="setting-row toggle-row"><div><label for="show-person">人物を表示</label><p>入口の左横に身長130cmの人物を表示し、大きさを比較できます。</p></div><input id="show-person" type="checkbox" role="switch" checked></div>
       <div class="setting-actions"><button id="reset-view" type="button">全体表示に戻す <span aria-hidden="true">↗</span></button><p id="view-status" role="status" aria-live="polite">斜めから全体を表示しています。</p></div>
     </section>
     </div>
@@ -77,6 +78,7 @@ try {
   bind('transparent-walls', 'change', () => view!.setTransparent(element<HTMLInputElement>('transparent-walls').checked));
   bind('wall-grid', 'change', () => view!.setWallGrid(element<HTMLInputElement>('wall-grid').checked));
   bind('show-windows', 'change', () => view!.setWindows(element<HTMLInputElement>('show-windows').checked));
+  bind('show-person', 'change', () => view!.setPerson(element<HTMLInputElement>('show-person').checked));
   bind('reset-view', 'click', () => { mode.value = 'angled'; view!.reset(); status.textContent = '斜めからの全体表示に戻しました。'; });
 } catch (error) {
   stage.innerHTML = '<p class="viewer-error" role="alert">3D表示を開始できませんでした。WebGL 2が有効なEdgeやChromeで開き直してください。</p>';

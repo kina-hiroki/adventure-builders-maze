@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createScalePerson, scalePersonPosition } from './createScalePerson.ts';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { cellPoint, wallKey } from '../maze/analyzeMaze.ts';
 import { createOuterWallWindows } from '../maze/outerWallWindows.ts';
@@ -18,7 +19,15 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   renderer.domElement.setAttribute('role', 'img');
   const mazeDescription = `${plan.name}、${plan.columns * plan.cellSize}m×${plan.rows * plan.cellSize}m、壁高${plan.wallHeight}mの迷路。入口${plan.entry}、出口${plan.exit}。`;
   const windowDescription = '正面を除く外壁に丸・正方形・ひし形の窓。';
-  renderer.domElement.setAttribute('aria-label', mazeDescription + windowDescription);
+  const personDescription = '入口の左横に身長130cmの人物。';
+  let windowsVisible = true;
+  let personVisible = true;
+  function updateDescription() {
+    renderer.domElement.setAttribute('aria-label', mazeDescription
+      + (windowsVisible ? windowDescription : '窓なし。')
+      + (personVisible ? personDescription : '人物は非表示。'));
+  }
+  updateDescription();
   renderer.domElement.setAttribute('tabindex', '0');
   renderer.domElement.setAttribute('aria-describedby', 'navigation-help');
   container.appendChild(renderer.domElement);
@@ -194,6 +203,13 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     scene.add(tag);
   }
 
+  const person = createScalePerson();
+  person.position.copy(scalePersonPosition(plan));
+  const personTag = label('130 cm', '#216987', 1.35);
+  personTag.position.set(0, 1.62, 0);
+  person.add(personTag);
+  scene.add(person);
+
   const dimensions = new THREE.Group();
   const lineMaterial = new THREE.LineBasicMaterial({ color: '#788aa0' });
   function dimension(a: THREE.Vector3, b: THREE.Vector3, text: string, offset: THREE.Vector3) {
@@ -229,7 +245,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     lastWidth = w;
     lastHeight = ht;
     const aspect = w / ht;
-    const span = aspect >= 1.5 ? 10.2 : 11.5;
+    const span = aspect >= 1.5 ? 10.2 : aspect < 1 ? 12.4 : 11.5;
     const viewHeight = span / Math.min(aspect, 1);
     camera.left = -viewHeight * aspect / 2;
     camera.right = viewHeight * aspect / 2;
@@ -284,7 +300,14 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     setWindows(value: boolean) {
       windowedWalls.visible = value;
       solidWindowWalls.visible = !value;
-      renderer.domElement.setAttribute('aria-label', mazeDescription + (value ? windowDescription : '窓なし。'));
+      windowsVisible = value;
+      updateDescription();
+      render();
+    },
+    setPerson(value: boolean) {
+      person.visible = value;
+      personVisible = value;
+      updateDescription();
       render();
     },
     setTransparent(value: boolean) {
