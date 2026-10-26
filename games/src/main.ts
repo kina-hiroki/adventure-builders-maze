@@ -23,8 +23,8 @@ app.innerHTML = `
     <dl class="specs" aria-label="迷路の仕様">
       <div><dt>縦 × 横</dt><dd>7 <span>×</span> 7 <small>m</small></dd></div>
       <div><dt>壁の高さ</dt><dd>1.5 <small>m</small></dd></div>
-      <div><dt>壁パネル</dt><dd>${pattern01.walls.length} <small>枚</small></dd></div>
-      <div><dt>1区画の大きさ</dt><dd>1 <small>m ×</small> 1 <small>m</small></dd></div>
+      <div><dt>壁用段ボール（幅1m）</dt><dd>${pattern01.walls.length} <small>枚</small></dd></div>
+      <div><dt>基本区画の大きさ</dt><dd>1 <small>m ×</small> 1 <small>m</small></dd></div>
     </dl>
     <div class="maze-layout">
     <section class="viewer-card" aria-labelledby="viewer-title">
@@ -42,11 +42,11 @@ app.innerHTML = `
       <div class="setting-row toggle-row"><div><label for="wall-grid">壁に1m間隔の縦の点線を表示</label><p>壁パネルの区切りを確認できます。</p></div><input id="wall-grid" type="checkbox" role="switch"></div>
       <div class="setting-row toggle-row"><div><label for="show-windows">外壁の窓を表示</label><p>正面以外の3面を、窓あり／窓なしに切り替えます。</p></div><input id="show-windows" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-person">人物を表示</label><p>入口の左横に身長130cmの人物を表示し、大きさを比較できます。</p></div><input id="show-person" type="checkbox" role="switch" checked></div>
-      <div class="setting-row toggle-row"><div><label for="show-quiz">○×クイズを表示</label><p>F2・G2の上辺にある赤✕・青〇の透かし壁を表示します。</p></div><input id="show-quiz" type="checkbox" role="switch" checked></div>
+      <div class="setting-row toggle-row"><div><label for="show-quiz">○×クイズを表示</label><p>F2・G2とD7の上辺にある赤✕・青〇の透かし壁を表示します。</p></div><input id="show-quiz" type="checkbox" role="switch" checked></div>
       <div class="setting-actions"><button id="reset-view" type="button">全体表示に戻す <span aria-hidden="true">↗</span></button><p id="view-status" role="status" aria-live="polite">斜めから全体を表示しています。</p></div>
     </section>
     </div>
-    <aside class="source-note" aria-label="取り込んだ図面の情報"><div><strong>取り込んだ迷路案</strong><p>パターン01 · F2–G2間／F3–G3間の壁追加を反映</p><p class="route-summary">正解ルート ${analysis.route.length}セル · 曲がり角 ${analysis.turns}回 · 分岐 ${analysis.branches}か所</p></div><a href="${import.meta.env.BASE_URL}reference/pattern01.pdf" target="_blank" rel="noopener">元の平面図を見る <span aria-hidden="true">↗</span></a></aside>
+    <aside class="source-note" aria-label="取り込んだ図面の情報"><div><strong>取り込んだ迷路案</strong><p>パターン01 · F2–G2間／F3–G3間とD5・D6中央の壁追加を反映</p><p class="route-summary">正解ルート ${analysis.route.length}通行区画 · 曲がり角 ${analysis.turns}回 · 分岐 ${analysis.branches}か所</p><p>D5・D6は左右0.5m幅。正解はD7上辺の右〇から東側を通ります。</p><p>壁用段ボールは幅1m × 高さ1.5mを${pattern01.walls.length}枚。クイズの透かし壁と正面の白い板は別扱いです。</p></div><a href="${import.meta.env.BASE_URL}reference/pattern01.pdf" target="_blank" rel="noopener">元の平面図を見る <span aria-hidden="true">↗</span></a></aside>
     <footer class="page-footer">ADVENTURE BUILDERS <span>小さな段ボールから、大きな冒険を。</span></footer>
   </main>`;
 

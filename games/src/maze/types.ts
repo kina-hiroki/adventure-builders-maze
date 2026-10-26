@@ -3,6 +3,7 @@ export type Wall = { from: Point; to: Point };
 export interface QuizWall {
   cell: string;
   edge: 'top';
+  span?: readonly [number, number]; // 上辺内の位置（0〜1）。省略時は上辺全体。
   symbol: '〇' | '✕';
   color: string;
 }

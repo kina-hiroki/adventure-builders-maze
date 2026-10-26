@@ -6,6 +6,7 @@ import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { cellPoint, wallKey } from '../maze/analyzeMaze.ts';
+import { createRoutePoints } from '../maze/topology.ts';
 import { createOuterWallWindows } from '../maze/outerWallWindows.ts';
 import type { WindowShape } from '../maze/outerWallWindows.ts';
 import type { MazePlan } from '../maze/types.ts';
@@ -25,7 +26,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   const windowDescription = '正面を除く外壁に丸・正方形・ひし形の窓。';
   const personDescription = '入口の左横に身長130cmの人物。';
   const quizDescription = plan.quizWalls.map(wall =>
-    `${wall.cell}の上辺に${wall.symbol === '✕' ? '赤い✕（行き止まり）' : '青い〇（正解）'}の半透明の壁。`).join('');
+    `${wall.cell}の上辺${wall.span ? (wall.span[0] === 0 ? '左半分' : '右半分') : ''}に${wall.symbol === '✕' ? '赤い✕（行き止まり）' : '青い〇（正解）'}の半透明の壁。`).join('');
   let windowsVisible = true;
   let personVisible = true;
   let quizVisible = true;
@@ -230,12 +231,14 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   quizWalls.name = 'quiz-walls';
   for (const wall of plan.quizWalls) {
     // クイズの通過位置を示す透かし壁。経路をふさぐ通常の壁とは分ける。
-    const geometry = new THREE.BoxGeometry(plan.cellSize, h, thickness);
+    const [start, end] = wall.span ?? [0, 1];
+    const quizWidth = (end - start) * plan.cellSize;
+    const geometry = new THREE.BoxGeometry(quizWidth, h, thickness);
     const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
       color: wall.color, transparent: true, opacity: 0.25, depthWrite: false,
     }));
     const [x, z] = cellPoint(wall.cell);
-    mesh.position.copy(world(x + 0.5, h / 2, z));
+    mesh.position.copy(world(x + (start + end) / 2, h / 2, z));
     mesh.name = `quiz-wall-${wall.cell}-${wall.symbol}`;
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry),
       new THREE.LineBasicMaterial({ color: wall.color, transparent: true, opacity: 0.65,
@@ -264,7 +267,8 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       depthWrite: false, toneMapped: false });
     // 記号も壁面に固定し、表裏の両方から見えるようにする。
     for (const side of [-1, 1]) {
-      const symbol = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.7), symbolMaterial);
+      const symbolSize = Math.min(0.7, quizWidth * 0.7);
+      const symbol = new THREE.Mesh(new THREE.PlaneGeometry(symbolSize, symbolSize), symbolMaterial);
       symbol.position.z = side * (thickness / 2 + 0.003);
       if (side < 0) symbol.rotation.y = Math.PI;
       mesh.add(symbol);
@@ -277,7 +281,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   solution.name = 'solution';
   const solutionHeight = 0.75; // 床から75cmの高さにそろえる。
   const routePoints = [world(0.5, solutionHeight, 7.35),
-    ...plan.solution.map(cell => { const [x, z] = cellPoint(cell); return world(x + 0.5, solutionHeight, z + 0.5); }),
+    ...createRoutePoints(plan, plan.solution).map(([x, z]) => world(x, solutionHeight, z)),
     world(6.5, solutionHeight, 7.35)];
   const routeGeometry = new LineGeometry().setPositions(routePoints.flatMap(point => point.toArray()));
   const route = new Line2(routeGeometry, new LineMaterial({ color: '#e88128',

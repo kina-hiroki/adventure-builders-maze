@@ -1,4 +1,5 @@
 import type { MazePlan, Point, Wall } from './types.ts';
+import { createMazeCells, createRoutePoints, isPassageBlocked, passageBetween } from './topology.ts';
 
 export function cellPoint(cell: string): Point {
   if (!/^[A-Z][1-9]\d*$/.test(cell)) throw new Error(`不正な区画座標: ${cell}`);
@@ -18,8 +19,10 @@ export function analyzeMaze(plan: MazePlan) {
   for (const wall of plan.walls) {
     const [x1, z1] = wall.from;
     const [x2, z2] = wall.to;
-    if (![x1, z1, x2, z2].every(Number.isInteger)
+    if (![x1, z1, x2, z2].every(value => Number.isInteger(value * 2))
       || Math.abs(x1 - x2) + Math.abs(z1 - z2) !== 1
+      || (x1 === x2 ? !Number.isInteger(z1) || !Number.isInteger(z2)
+        : !Number.isInteger(x1) || !Number.isInteger(x2))
       || x1 < 0 || x2 < 0 || z1 < 0 || z2 < 0
       || x1 > plan.columns || x2 > plan.columns || z1 > plan.rows || z2 > plan.rows) {
       throw new Error('壁の座標・長さが不正です。');
@@ -29,21 +32,14 @@ export function analyzeMaze(plan: MazePlan) {
     keys.add(key);
   }
   const graph = new Map<string, string[]>();
-  for (let z = 0; z < plan.rows; z++) {
-    for (let x = 0; x < plan.columns; x++) graph.set(cellName(x, z), []);
-  }
-  for (let z = 0; z < plan.rows; z++) {
-    for (let x = 0; x < plan.columns; x++) {
-      const cell = cellName(x, z);
-      for (const [nx, nz, barrier] of [
-        [x + 1, z, { from: [x + 1, z], to: [x + 1, z + 1] }],
-        [x, z + 1, { from: [x, z + 1], to: [x + 1, z + 1] }],
-      ] as [number, number, Wall][]) {
-        const next = cellName(nx, nz);
-        if (!graph.has(next) || keys.has(wallKey(barrier))) continue;
-        graph.get(cell)!.push(next);
-        graph.get(next)!.push(cell);
-      }
+  const cells = createMazeCells(plan);
+  for (const cell of cells) graph.set(cell.id, []);
+  for (let i = 0; i < cells.length; i++) {
+    for (let j = i + 1; j < cells.length; j++) {
+      const passage = passageBetween(cells[i], cells[j]);
+      if (!passage || isPassageBlocked(passage, plan.walls)) continue;
+      graph.get(cells[i].id)!.push(cells[j].id);
+      graph.get(cells[j].id)!.push(cells[i].id);
     }
   }
   if (!graph.has(plan.entry) || !graph.has(plan.exit)) throw new Error('入口・出口が範囲外です。');
@@ -64,21 +60,18 @@ export function analyzeMaze(plan: MazePlan) {
     route.unshift(current);
     current = previous.get(current)!;
   }
-  const directions = route.slice(1).map((cell, i) => {
-    const a = cellPoint(route[i]);
-    const b = cellPoint(cell);
-    return `${b[0] - a[0]},${b[1] - a[1]}`;
-  });
+  const routePoints = createRoutePoints(plan, route);
   const externalWalls = plan.walls.filter(({ from, to }) =>
     (from[0] === to[0] && (from[0] === 0 || from[0] === plan.columns))
     || (from[1] === to[1] && (from[1] === 0 || from[1] === plan.rows))).length;
   return {
     route,
+    routePoints,
     graph,
     connectedCells: previous.size,
     edges: [...graph.values()].reduce((sum, next) => sum + next.length, 0) / 2,
     branches: [...graph.values()].filter(next => next.length >= 3).length,
-    turns: directions.slice(1).filter((dir, i) => dir !== directions[i]).length,
+    turns: Math.max(0, routePoints.length - 2),
     externalWalls,
     internalWalls: plan.walls.length - externalWalls,
   };
