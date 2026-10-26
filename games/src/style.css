@@ -75,3 +75,7 @@ input[role='switch']:checked { background: #3d6a86; }input[role='switch']:checke
   .settings { padding: 21px 18px 0; }.setting-row { grid-template-columns: 1fr; gap: 12px; }.toggle-row { grid-template-columns: 1fr auto; gap: 16px; }.setting-row label { font-size: 11px; }
   .setting-actions, .source-note { align-items: flex-start; flex-direction: column; }.setting-actions p { font-size: 9px; }.source-note { gap: 14px; padding: 23px 2px; }.page-footer { flex-direction: column; }
 }
+
+.viewer-loading { display: grid; place-items: center; height: 100%; margin: 0; padding: 24px; color: #78899d; font-size: 12px; }
+.viewer-error { align-content: center; justify-items: center; }
+.viewer-error button { border: 1px solid #d9e2eb; background: white; border-radius: 7px; color: #405770; padding: 10px 16px; }

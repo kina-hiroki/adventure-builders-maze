@@ -102,6 +102,31 @@ npm.cmd run preview -- --host 127.0.0.1 --port 4173 --strictPort
 
 [http://127.0.0.1:4173/adventure-builders-maze/](http://127.0.0.1:4173/adventure-builders-maze/) を開きます。プレビューはローカル確認用です。
 
+## JavaScriptの分割と読み込み
+
+画面を組み立てた後、3D処理を動的importで読み込みます。迷路は自動表示します。
+読み込み中は「3Dを読み込み中」を表示し、3Dの設定操作を無効にします。
+ファイル取得に失敗した場合は通信環境の確認、3D初期化に失敗した場合はWebGL 2対応ブラウザーの案内を表示し、「再読み込み」ボタンを用意しています。
+画面更新・終了後に遅れて読み込みが完了しても、終了した画面を作り直しません。
+
+2026年10月26日のローカルビルドで確認した構成です。容量は10進kB、gzipは同じNode.jsのgzipSyncで比較しています。実際のHTTP転送量ではありません。
+
+| 配信JS | 内容 | 容量 | gzip容量 |
+|---|---|---:|---:|
+| index-[hash].js | 画面・設定・迷路データと解析・起動処理 | 13.93 kB | 5.96 kB |
+| maze-view-[hash].js | 迷路の3D処理・人物・板・窓・吹き出し | 12.59 kB | 5.66 kB |
+| three-[hash].js | Three.jsとOrbitControls | 594.79 kB | 147.85 kB |
+| 合計 |  | 621.31 kB | 159.47 kB |
+
+分割前は1本で617.98 kB、gzip 157.59 kBでした。読み込み・失敗処理の追加により合計容量は少し増えています。
+画面側の変更だけでThree.jsのファイル名が変わらないことを再ビルドで確認しています。ブラウザーがキャッシュを再利用しやすくするための分割です。
+初回は3D表示に必要な全ファイルを取得します。表示速度の改善率や10回の通信量・表示時間は未計測です。
+Three.js側の500kB超の容量警告は継続しています。
+
+分割設定はVite 8の `build.rolldownOptions.output.codeSplitting` を使用しています。
+[loadView.ts](games/src/loadView.ts) の非同期読み込み・失敗の区別・終了後の作成防止・リソースの解放は単体テストで確認します。
+開発サーバーと本番プレビューで初期画面、全視点、回転・拡大、各表示設定、板の吹き出し、画面サイズ変更とファイル取得失敗からの復旧を確認しています。
+
 ## GitHub Pages向けのパス設定
 
 [vite.config.ts](games/vite.config.ts) の `base` を `/adventure-builders-maze/` に設定しています。
@@ -158,7 +183,8 @@ GitHub Pagesの公開設定が完了した後のURLは `https://kina-hiroki.gith
    ├─ vite.config.ts          # GitHub Pages向けの公開パス
    ├─ index.html             # ページの入口
    ├─ src/
-   │  ├─ main.ts             # 画面と表示設定の連携
+   │  ├─ main.ts             # 画面・表示設定・3Dの非同期起動
+   │  ├─ loadView.ts         # 非同期読み込み・失敗通知・終了処理
    │  ├─ style.css           # レイアウト・見た目
    │  ├─ maze/
    │  │  ├─ types.ts         # 迷路データの型
@@ -173,7 +199,8 @@ GitHub Pagesの公開設定が完了した後のURLは `https://kina-hiroki.gith
    ├─ tests/
    │  ├─ maze.test.mjs
    │  ├─ windows.test.mjs
-   │  └─ person.test.mjs
+   │  ├─ person.test.mjs
+   │  └─ loading.test.mjs
    └─ public/
       └─ reference/
          └─ pattern01.pdf    # 参照用の平面図

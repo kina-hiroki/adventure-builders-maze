@@ -1,8 +1,8 @@
 import './style.css';
 import { pattern01 } from './maze/pattern01.ts';
 import { analyzeMaze } from './maze/analyzeMaze.ts';
-import { createMazeView } from './three/createMazeView.ts';
-import type { ViewMode } from './three/createMazeView.ts';
+import { loadView } from './loadView.ts';
+import type { createMazeView, ViewMode } from './three/createMazeView.ts';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('描画先の #app が見つかりません。');
@@ -55,6 +55,7 @@ function element<T extends HTMLElement>(id: string) {
   return node as T;
 }
 const events = new AbortController();
+const retryEvents = new AbortController();
 const rotation = element<HTMLInputElement>('rotation');
 const zoom = element<HTMLInputElement>('zoom');
 const mode = element<HTMLSelectElement>('view-mode');
@@ -62,36 +63,60 @@ const status = element<HTMLElement>('view-status');
 const stage = element<HTMLDivElement>('maze-stage');
 let view: ReturnType<typeof createMazeView> | undefined;
 
-try {
-  view = createMazeView(stage, pattern01, (angle, percent) => {
-    rotation.value = String(angle);
-    zoom.value = String(percent);
-    element<HTMLOutputElement>('rotation-value').value = `${angle}°`;
-    element<HTMLOutputElement>('zoom-value').value = `${percent}%`;
-  });
-  const bind = (id: string, event: string, callback: () => void) =>
-    element(id).addEventListener(event, callback, { signal: events.signal });
-  bind('show-solution', 'change', () => view!.setSolution(element<HTMLInputElement>('show-solution').checked));
-  bind('view-mode', 'change', () => { view!.setView(mode.value as ViewMode); status.textContent = `${mode.selectedOptions[0].text}の視点に切り替えました。`; });
-  bind('rotation', 'input', () => view!.setAngle(Number(rotation.value)));
-  bind('zoom', 'input', () => view!.setZoom(Number(zoom.value)));
-  bind('transparent-walls', 'change', () => view!.setTransparent(element<HTMLInputElement>('transparent-walls').checked));
-  bind('wall-grid', 'change', () => view!.setWallGrid(element<HTMLInputElement>('wall-grid').checked));
-  bind('show-windows', 'change', () => view!.setWindows(element<HTMLInputElement>('show-windows').checked));
-  bind('show-person', 'change', () => view!.setPerson(element<HTMLInputElement>('show-person').checked));
-  bind('reset-view', 'click', () => { mode.value = 'angled'; view!.reset(); status.textContent = '斜めからの全体表示に戻しました。'; });
-} catch (error) {
-  stage.innerHTML = '<p class="viewer-error" role="alert">3D表示を開始できませんでした。WebGL 2が有効なEdgeやChromeで開き直してください。</p>';
-  document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('.settings input, .settings select, .settings button').forEach(node => { node.disabled = true; });
-  status.textContent = '3D表示を利用できません。';
-  console.error('迷路の3D表示を開始できませんでした。', error);
+function setBusy(busy: boolean) {
+  stage.setAttribute('aria-busy', String(busy));
+  document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>('.settings input, .settings select, .settings button').forEach(node => { node.disabled = busy; });
 }
+setBusy(true);
+stage.innerHTML = '<p class="viewer-loading" role="status">3Dを読み込み中…</p>';
+status.textContent = '3Dを読み込み中です。';
+const loader = loadView({
+  load: () => import('./three/createMazeView.ts'),
+  create: ({ createMazeView }) => {
+    stage.replaceChildren();
+    return createMazeView(stage, pattern01, (angle, percent) => {
+      rotation.value = String(angle);
+      zoom.value = String(percent);
+      element<HTMLOutputElement>('rotation-value').value = `${angle}°`;
+      element<HTMLOutputElement>('zoom-value').value = `${percent}%`;
+    });
+  },
+  onReady: readyView => {
+    view = readyView;
+    const bind = (id: string, event: string, callback: () => void) =>
+      element(id).addEventListener(event, callback, { signal: events.signal });
+    bind('show-solution', 'change', () => view!.setSolution(element<HTMLInputElement>('show-solution').checked));
+    bind('view-mode', 'change', () => { view!.setView(mode.value as ViewMode); status.textContent = `${mode.selectedOptions[0].text}の視点に切り替えました。`; });
+    bind('rotation', 'input', () => view!.setAngle(Number(rotation.value)));
+    bind('zoom', 'input', () => view!.setZoom(Number(zoom.value)));
+    bind('transparent-walls', 'change', () => view!.setTransparent(element<HTMLInputElement>('transparent-walls').checked));
+    bind('wall-grid', 'change', () => view!.setWallGrid(element<HTMLInputElement>('wall-grid').checked));
+    bind('show-windows', 'change', () => view!.setWindows(element<HTMLInputElement>('show-windows').checked));
+    bind('show-person', 'change', () => view!.setPerson(element<HTMLInputElement>('show-person').checked));
+    bind('reset-view', 'click', () => { mode.value = 'angled'; view!.reset(); status.textContent = '斜めからの全体表示に戻しました。'; });
+    setBusy(false);
+    status.textContent = '斜めから全体を表示しています。';
+  },
+  onError: (phase, error) => {
+    events.abort();
+    stage.setAttribute('aria-busy', 'false');
+    const message = phase === 'load'
+      ? '3D表示に必要なファイルを読み込めませんでした。通信環境を確認して再読み込みしてください。'
+      : '3D表示を開始できませんでした。WebGL 2が有効なEdgeやChromeで開き直してください。';
+    stage.innerHTML = '<div class="viewer-error" role="alert"><p></p><button type="button">再読み込み</button></div>';
+    stage.querySelector('p')!.textContent = message;
+    stage.querySelector('button')!.addEventListener('click', () => window.location.reload(), { signal: retryEvents.signal });
+    status.textContent = '3D表示を利用できません。';
+    console.error(phase === 'load' ? '3Dファイルの読み込みに失敗しました。' : '迷路の3D表示を開始できませんでした。', error);
+  },
+});
 
 if (import.meta.hot) {
   import.meta.hot.accept();
   import.meta.hot.dispose(() => {
     events.abort();
-    view?.dispose();
+    retryEvents.abort();
+    loader.dispose();
     app.replaceChildren();
   });
 }
