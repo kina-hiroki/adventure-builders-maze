@@ -8,14 +8,12 @@ export function attachPartTooltip(container: HTMLElement, canvas: HTMLCanvasElem
   tooltip.id = 'front-board-tooltip';
   tooltip.setAttribute('role', 'tooltip');
   tooltip.hidden = true;
-  const title = document.createElement('strong');
-  title.textContent = '白い板';
   const size = document.createElement('p');
   size.className = 'part-tooltip-size';
   size.textContent = '高さ 1.5 m × 幅 5 m';
   const description = document.createElement('p');
   description.textContent = '子供たちに絵を書いてもらった段ボールを配置';
-  tooltip.append(title, size, description);
+  tooltip.append(size, description);
   container.appendChild(tooltip);
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();

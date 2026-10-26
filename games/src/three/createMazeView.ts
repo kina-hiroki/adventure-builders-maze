@@ -145,6 +145,19 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   const frontBoard = new THREE.Mesh(new THREE.BoxGeometry(5, 1.5, frontBoardThickness), frontBoardMaterial);
   frontBoard.name = 'front-art-board';
   frontBoard.position.set(0, 0.75, depth / 2 + thickness / 2 + frontBoardThickness / 2);
+  const frontBoardGuideMaterial = new THREE.LineDashedMaterial({ color: '#000000',
+    dashSize: 0.07, gapSize: 0.05, transparent: true, depthWrite: false });
+  const frontBoardGuidePoints: THREE.Vector3[] = [];
+  for (let x = 1; x < 5; x++) {
+    const z = frontBoardThickness / 2 + 0.002;
+    frontBoardGuidePoints.push(new THREE.Vector3(x - 2.5, -0.75, z),
+      new THREE.Vector3(x - 2.5, 0.75, z));
+  }
+  const frontBoardGuides = new THREE.LineSegments(
+    new THREE.BufferGeometry().setFromPoints(frontBoardGuidePoints), frontBoardGuideMaterial);
+  frontBoardGuides.name = 'front-board-one-metre-guides';
+  frontBoardGuides.computeLineDistances();
+  frontBoard.add(frontBoardGuides);
   walls.add(frontBoard);
   scene.add(walls);
   const wallGrid = new THREE.LineSegments(
@@ -333,6 +346,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       }
       windowEdgeMaterial.transparent = value;
       windowEdgeMaterial.opacity = value ? 0.22 : 1;
+      frontBoardGuideMaterial.opacity = value ? 0.22 : 1;
       windowEdgeMaterial.needsUpdate = true;
       render();
     },
