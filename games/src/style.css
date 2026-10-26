@@ -30,8 +30,8 @@ h2 { font-size: 13px; margin: 0; font-weight: 700; }
 .viewer-legend { display: flex; align-items: center; gap: 7px; font-size: 10px; color: #728196; }
 .viewer-legend i { width: 7px; height: 7px; border-radius: 50%; }
 .start-dot { background: #25836b; }.goal-dot { background: #bf584b; margin-left: 12px; }
-.maze-stage { flex: 1; width: 100%; height: 540px; min-height: 540px; }
-.maze-stage canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+.maze-stage { position: relative; flex: 1; width: 100%; height: 540px; min-height: 540px; }
+.maze-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
 .maze-stage canvas:active { cursor: grabbing; }
 .navigation-help { text-align: center; color: #78899d; font-size: 10px; line-height: 1.9; margin: 0; padding: 0 15px 18px; }
 .navigation-help span { display: none; }

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "node --test tests/maze.test.mjs"
+    "test": "node --test"
   },
   "devDependencies": {
     "@types/three": "^0.186.0",

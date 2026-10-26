@@ -18,7 +18,7 @@ app.innerHTML = `
     <section class="intro" aria-labelledby="page-title">
       <div><p class="eyebrow">CARDBOARD MAZE / 01</p><h1 id="page-title">パターン01<span>迷路を、立体で。</span></h1>
       <p class="lead">平面図の壁配置をそのまま3Dへ。視点を変えて、通路と全体の形を確かめられます。</p></div>
-      <span class="revision-badge"><span aria-hidden="true">●</span> 追加壁2区間を反映済み</span>
+      <span class="revision-badge"><span aria-hidden="true">●</span> 外壁に3種類の窓を追加</span>
     </section>
     <dl class="specs" aria-label="迷路の仕様">
       <div><dt>縦 × 横</dt><dd>7 <span>×</span> 7 <small>m</small></dd></div>

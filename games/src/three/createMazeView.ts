@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { cellPoint } from '../maze/analyzeMaze.ts';
+import { cellPoint, wallKey } from '../maze/analyzeMaze.ts';
+import { createOuterWallWindows } from '../maze/outerWallWindows.ts';
+import type { WindowShape } from '../maze/outerWallWindows.ts';
 import type { MazePlan } from '../maze/types.ts';
+import { createWindowOutlineGeometry, createWindowWallGeometry } from './createWindowWallGeometry.ts';
 
 export type ViewMode = 'angled' | 'top' | 'side' | 'front' | 'right' | 'back' | 'left';
 
@@ -13,7 +16,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.domElement.setAttribute('role', 'img');
-  renderer.domElement.setAttribute('aria-label', 'パターン01、7m×7m、壁高1.5mの迷路。入口A7、出口G7。');
+  renderer.domElement.setAttribute('aria-label', 'パターン01、7m×7m、壁高1.5mの迷路。入口A7、出口G7。外壁に丸・正方形・ひし形の窓。');
   renderer.domElement.setAttribute('tabindex', '0');
   renderer.domElement.setAttribute('aria-describedby', 'navigation-help');
   container.appendChild(renderer.domElement);
@@ -59,17 +62,42 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   const [sideMaterial, addedMaterial, topMaterial] = wallMaterials;
   const walls = new THREE.Group();
   walls.name = 'maze-walls';
+  const outerWindows = createOuterWallWindows(plan);
+  const windowGeometries = new Map<WindowShape, THREE.ExtrudeGeometry>();
+  const windowOutlines = new Map<WindowShape, THREE.BufferGeometry>();
+  const windowEdgeMaterial = new THREE.LineBasicMaterial({ color: '#78512f', depthWrite: false });
   const verticalMarkers = new Map<string, THREE.Vector3[]>();
   for (const wall of plan.walls) {
     const vertical = wall.from[0] === wall.to[0];
     const added = vertical && wall.from[0] === 6 && (wall.from[1] === 1 || wall.from[1] === 2);
     const material = added ? addedMaterial : sideMaterial;
-    const geometry = new THREE.BoxGeometry(vertical ? thickness : plan.cellSize, h,
-      vertical ? plan.cellSize : thickness);
-    const mesh = new THREE.Mesh(geometry, [material, material, topMaterial, material, material, material]);
+    const windowShape = outerWindows.get(wallKey(wall));
+    let geometry: THREE.BufferGeometry;
+    if (windowShape) {
+      let windowGeometry = windowGeometries.get(windowShape);
+      if (!windowGeometry) {
+        windowGeometry = createWindowWallGeometry(plan.cellSize, h, thickness, windowShape);
+        windowGeometries.set(windowShape, windowGeometry);
+      }
+      geometry = windowGeometry;
+    } else {
+      geometry = new THREE.BoxGeometry(vertical ? thickness : plan.cellSize, h,
+        vertical ? plan.cellSize : thickness);
+    }
+    const mesh = new THREE.Mesh(geometry, windowShape ? [material, topMaterial]
+      : [material, material, topMaterial, material, material, material]);
+    if (windowShape) {
+      let outline = windowOutlines.get(windowShape);
+      if (!outline) {
+        outline = createWindowOutlineGeometry(h, thickness, windowShape);
+        windowOutlines.set(windowShape, outline);
+      }
+      mesh.add(new THREE.LineSegments(outline, windowEdgeMaterial));
+    }
+    if (windowShape && vertical) mesh.rotation.y = Math.PI / 2;
     mesh.position.copy(world((wall.from[0] + wall.to[0]) / 2, h / 2,
       (wall.from[1] + wall.to[1]) / 2));
-    mesh.name = added ? 'added-wall' : 'wall';
+    mesh.name = windowShape ? `outer-wall-${windowShape}-window` : added ? 'added-wall' : 'wall';
     walls.add(mesh);
     for (const [x, z] of [wall.from, wall.to]) {
       for (const sign of [-1, 1]) {
@@ -168,12 +196,20 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   scene.add(dimensions);
 
   let disposed = false;
+  let resizeFrame = 0;
+  let lastWidth = 0;
+  let lastHeight = 0;
   let view: ViewMode = 'angled';
   let angle = 45;
   const render = () => { if (!disposed) renderer.render(scene, camera); };
   function resize() {
-    const { width: w, height: ht } = container.getBoundingClientRect();
-    if (w <= 0 || ht <= 0) return;
+    if (disposed) return;
+    const bounds = container.getBoundingClientRect();
+    const w = Math.round(bounds.width);
+    const ht = Math.round(bounds.height);
+    if (w <= 0 || ht <= 0 || (w === lastWidth && ht === lastHeight)) return;
+    lastWidth = w;
+    lastHeight = ht;
     const aspect = w / ht;
     const span = aspect >= 1.5 ? 10.2 : 11.5;
     const viewHeight = span / Math.min(aspect, 1);
@@ -184,6 +220,14 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     camera.updateProjectionMatrix();
     renderer.setSize(w, ht, false);
     render();
+  }
+  function scheduleResize() {
+    if (disposed || resizeFrame) return;
+    // 観測通知の中でレイアウトを更新せず、同じフレームの通知をまとめる。
+    resizeFrame = window.requestAnimationFrame(() => {
+      resizeFrame = 0;
+      resize();
+    });
   }
   function updatePosition() {
     const theta = THREE.MathUtils.degToRad(angle);
@@ -199,7 +243,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     render();
   };
   controls.addEventListener('change', changed);
-  const observer = new ResizeObserver(resize);
+  const observer = new ResizeObserver(scheduleResize);
   observer.observe(container);
   updatePosition();
   resize();
@@ -226,6 +270,9 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
         material.depthWrite = !value;
         material.needsUpdate = true;
       }
+      windowEdgeMaterial.transparent = value;
+      windowEdgeMaterial.opacity = value ? 0.22 : 1;
+      windowEdgeMaterial.needsUpdate = true;
       render();
     },
     setWallGrid(value: boolean) { wallGrid.visible = value; render(); },
@@ -233,6 +280,8 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     dispose() {
       disposed = true;
       observer.disconnect();
+      window.cancelAnimationFrame(resizeFrame);
+      resizeFrame = 0;
       controls.removeEventListener('change', changed);
       controls.dispose();
       const geometries = new Set<THREE.BufferGeometry>();
