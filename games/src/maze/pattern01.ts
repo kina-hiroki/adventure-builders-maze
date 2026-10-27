@@ -1,6 +1,6 @@
 import type { MazePlan } from './types.ts';
 
-// 元図の黒線を1m区間に分解し、追加指定された2区間を反映。
+// 元図の黒線を1m区間に分解し、境界の2枚とD5・D6中央の2枚を追加。
 export const pattern01: MazePlan = {
   "id": "pattern-01",
   "name": "パターン01",
@@ -14,13 +14,19 @@ export const pattern01: MazePlan = {
   "sourceSha256": "218ec15eaa2463fecaa4d770597afc5939f933fe72bc5feaf14b8e462256edd2",
   "addedWalls": [
     "F2–G2",
-    "F3–G3"
+    "F3–G3",
+    "D5中央（南北方向）",
+    "D6中央（南北方向）"
   ],
   "quizWalls": [
     { "cell": "F2", "edge": "top", "symbol": "✕", "color": "#dc2626" },
-    { "cell": "G2", "edge": "top", "symbol": "〇", "color": "#2563eb" }
+    { "cell": "G2", "edge": "top", "symbol": "〇", "color": "#2563eb" },
+    { "cell": "D7", "edge": "top", "span": [0, 0.5], "symbol": "✕", "color": "#dc2626" },
+    { "cell": "D7", "edge": "top", "span": [0.5, 1], "symbol": "〇", "color": "#2563eb" }
   ],
   "walls": [
+    { "from": [3.5, 4], "to": [3.5, 5] },
+    { "from": [3.5, 5], "to": [3.5, 6] },
     {
       "from": [
         0,
@@ -655,8 +661,8 @@ export const pattern01: MazePlan = {
     "C6",
     "C7",
     "D7",
-    "D6",
-    "D5",
+    "D6E",
+    "D5E",
     "E5",
     "E4",
     "D4",
