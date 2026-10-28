@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { animateSolutionRoute } from './animateSolutionRoute.ts';
 import { attachPartTooltip } from './attachPartTooltip.ts';
 import { createScalePerson, scalePersonPosition } from './createScalePerson.ts';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -343,6 +344,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   let view: ViewMode = 'angled';
   let angle = 45;
   const render = () => { if (!disposed) renderer.render(scene, camera); };
+  const solutionAnimation = animateSolutionRoute(route.material, render);
   function resize() {
     if (disposed) return;
     const bounds = container.getBoundingClientRect();
@@ -405,7 +407,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     },
     setAngle(value: number) { angle = value; updatePosition(); },
     setZoom(value: number) { camera.zoom = value / 100; camera.updateProjectionMatrix(); controls.update(); changed(); },
-    setSolution(value: boolean) { solution.visible = value; render(); },
+    setSolution(value: boolean) { solution.visible = value; solutionAnimation.setVisible(value); render(); },
     setWindows(value: boolean) {
       windowedWalls.visible = value;
       solidWindowWalls.visible = !value;
@@ -443,6 +445,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     reset() { camera.zoom = 1; camera.updateProjectionMatrix(); controls.target.set(0, 0.4, 0); view = 'angled'; angle = 45; updatePosition(); changed(); },
     dispose() {
       disposed = true;
+      solutionAnimation.dispose();
       observer.disconnect();
       window.cancelAnimationFrame(resizeFrame);
       resizeFrame = 0;
