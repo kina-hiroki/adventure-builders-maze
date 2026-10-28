@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { animateSolutionRoute } from './animateSolutionRoute.ts';
 import { attachPartTooltip } from './attachPartTooltip.ts';
 import { createScalePerson, scalePersonPosition } from './createScalePerson.ts';
+import { createMazeTunnels } from './createMazeTunnels.ts';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
@@ -26,6 +27,8 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   const mazeDescription = `${plan.name}、${plan.columns * plan.cellSize}m×${plan.rows * plan.cellSize}m、壁高${plan.wallHeight}mの迷路。入口${plan.entry}、出口${plan.exit}。`;
   const windowDescription = '正面を除く外壁に丸・正方形・ひし形の窓。';
   const personDescription = '入口の左横に身長130cmの人物。';
+  const tunnelDescription = (plan.tunnels ?? []).map(tunnel =>
+    `${tunnel.name}。幅${tunnel.width}m・中央高さ${tunnel.height}m。`).join('');
   const quizDescription = plan.quizWalls.map(wall =>
     `${wall.cell}の上辺${wall.span ? (wall.span[0] === 0 ? '左半分' : '右半分') : ''}に${wall.symbol === '✕' ? '赤い✕（行き止まり）' : '青い〇（正解）'}の半透明の壁。`).join('');
   let windowsVisible = true;
@@ -33,6 +36,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   let quizVisible = true;
   function updateDescription() {
     renderer.domElement.setAttribute('aria-label', mazeDescription
+      + tunnelDescription
       + (windowsVisible ? windowDescription : '窓なし。')
       + (personVisible ? personDescription : '人物は非表示。')
       + '正面の壁に高さ1.5m・幅5mの白い板。'
@@ -186,6 +190,8 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   frontBoard.add(frontBoardGuides);
   walls.add(frontBoard);
   scene.add(walls);
+  const tunnels = createMazeTunnels(plan);
+  scene.add(tunnels.group);
   const wallGrid = new THREE.LineSegments(
     new THREE.BufferGeometry().setFromPoints([...verticalMarkers.values()].flat()),
     new THREE.LineDashedMaterial({ color: '#745337', dashSize: 0.055, gapSize: 0.045,
@@ -336,6 +342,14 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       description: '子供たちに絵を書いてもらった段ボールを配置' },
     ...quizWalls.children.map((part, index) => ({ part, id: `quiz-wall-tooltip-${index}`,
       description: '○×クイズ：〇✕クイズを出題し、クイズの回答に応じて進むルートを選んでもらう。' })),
+    ...tunnels.group.children.map((part, index) => {
+      const specification = plan.tunnels![index];
+      const length = Math.hypot(specification.to[0] - specification.from[0],
+        specification.to[1] - specification.from[1]) * plan.cellSize;
+      return { part, id: `tunnel-tooltip-${index}`,
+        size: `幅 ${specification.width} m × 長さ ${length} m × 中央高さ ${specification.height} m`,
+        description: `${specification.name}。半円のアーチ型の天井をくぐって進みます。` };
+    }),
   ]);
 
   let disposed = false;
@@ -430,6 +444,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       render();
     },
     setTransparent(value: boolean) {
+      tunnels.setTransparent(value);
       for (const material of wallMaterials) {
         material.transparent = value;
         material.opacity = value ? 0.22 : 1;

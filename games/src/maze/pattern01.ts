@@ -650,6 +650,16 @@ export const pattern01: MazePlan = {
       ]
     }
   ],
+  "tunnels": [
+    {
+      "id": "b1-c1-tunnel",
+      "name": "B1〜C1の半円型トンネル",
+      "from": [1, 0.75],
+      "to": [3, 0.75],
+      "width": 1.5,
+      "height": 1
+    }
+  ],
   "solutionVia": ["B1", "C1"],
   "solutionCenters": {
     "A1": [0.5, 0.75],
