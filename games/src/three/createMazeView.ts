@@ -190,7 +190,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   frontBoard.add(frontBoardGuides);
   walls.add(frontBoard);
   scene.add(walls);
-  const tunnels = createMazeTunnels(plan);
+  const tunnels = createMazeTunnels(plan, thickness);
   scene.add(tunnels.group);
   const wallGrid = new THREE.LineSegments(
     new THREE.BufferGeometry().setFromPoints([...verticalMarkers.values()].flat()),
