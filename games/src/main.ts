@@ -42,7 +42,7 @@ app.innerHTML = `
       <div class="setting-row toggle-row"><div><label for="wall-grid">壁に1m間隔の縦の点線を表示</label><p>壁パネルの区切りを確認できます。</p></div><input id="wall-grid" type="checkbox" role="switch"></div>
       <div class="setting-row toggle-row"><div><label for="show-windows">外壁の窓を表示</label><p>正面以外の3面を、窓あり／窓なしに切り替えます。</p></div><input id="show-windows" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-person">人物を表示</label><p>入口の左横に身長130cmの人物を表示し、大きさを比較できます。</p></div><input id="show-person" type="checkbox" role="switch" checked></div>
-      <div class="setting-row toggle-row"><div><label for="show-quiz">○×クイズを表示</label><p>F2・G2とD7の上辺にある赤✕・青〇の透かし壁を表示します。</p></div><input id="show-quiz" type="checkbox" role="switch" checked></div>
+      <div class="setting-row toggle-row"><div><label for="show-quiz">○×クイズを表示</label><p>赤✕・青〇の透かし壁を表示します。</p></div><input id="show-quiz" type="checkbox" role="switch" checked></div>
       <div class="setting-actions"><button id="reset-view" type="button">全体表示に戻す <span aria-hidden="true">↗</span></button><p id="view-status" role="status" aria-live="polite">斜めから全体を表示しています。</p></div>
     </section>
     </div>
