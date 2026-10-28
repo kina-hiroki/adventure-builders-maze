@@ -1,6 +1,8 @@
 import type { MazePlan } from './types.ts';
 
 // 元図の黒線を1m区間に分解し、境界の2枚とD5・D6中央の2枚を追加。
+// B2・C2上辺の壁は図面上で下へ0.5m移動（上から1.5mの位置）。
+// 両端の縦壁は上側に突き出す0.5mを除き、横壁の位置から下側だけ残す。
 export const pattern01: MazePlan = {
   "id": "pattern-01",
   "name": "パターン01",
@@ -100,7 +102,7 @@ export const pattern01: MazePlan = {
     {
       "from": [
         1,
-        1
+        1.5
       ],
       "to": [
         1,
@@ -150,7 +152,7 @@ export const pattern01: MazePlan = {
     {
       "from": [
         3,
-        1
+        1.5
       ],
       "to": [
         3,
@@ -400,21 +402,21 @@ export const pattern01: MazePlan = {
     {
       "from": [
         1,
-        1
+        1.5
       ],
       "to": [
         2,
-        1
+        1.5
       ]
     },
     {
       "from": [
         2,
-        1
+        1.5
       ],
       "to": [
         3,
-        1
+        1.5
       ]
     },
     {
@@ -648,6 +650,13 @@ export const pattern01: MazePlan = {
       ]
     }
   ],
+  "solutionVia": ["B1", "C1"],
+  "solutionCenters": {
+    "A1": [0.5, 0.75],
+    "B1": [1.5, 0.75],
+    "C1": [2.5, 0.75],
+    "D1": [3.5, 0.75]
+  },
   "solution": [
     "A7",
     "A6",
@@ -668,8 +677,8 @@ export const pattern01: MazePlan = {
     "D4",
     "D3",
     "C3",
-    "C2",
-    "B2",
+    "C2S",
+    "B2S",
     "B3",
     "A3",
     "A2",
