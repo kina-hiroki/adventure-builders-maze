@@ -51,6 +51,22 @@ test('B1〜C1の東西2mに幅1.5mのトンネルがあり、床面0m・中央�
   });
 });
 
+test('天井・側壁・継ぎ目が既存の壁の外面を越えず、外側にトンネルの面が残らない', () => {
+  withTunnels(({ group }) => {
+    const northFace = -3.5 - 0.045 / 2;
+    const southFace = -2 + 0.045 / 2;
+    const bounds = new THREE.Box3().setFromObject(group);
+    assert.ok(bounds.min.z >= northFace, '北側の外壁より外にはみ出さない');
+    assert.ok(bounds.max.z <= southFace, '南側の壁より外にはみ出さない');
+    // 継ぎ目も含め、従来はみ出していた幅の範囲を全長で調べる。
+    for (const x of [-2.49, -2, -1.5, -1, -0.51]) {
+      for (const z of [northFace - 0.005, southFace + 0.005]) {
+        assert.equal(meshHits(group, new THREE.Vector3(x, 2, z), new THREE.Vector3(0, -1, 0), 3).length, 0);
+      }
+    }
+  });
+});
+
 test('トンネルの両端が開き、床上75cmの正解ルート全体がトンネルの壁や天井を横切らない', () => {
   withTunnels(({ group }) => {
     for (const [x, direction] of [[-3, 1], [0, -1]]) {
