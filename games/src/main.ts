@@ -18,7 +18,7 @@ app.innerHTML = `
     <section class="intro" aria-labelledby="page-title">
       <div><p class="eyebrow">CARDBOARD MAZE / 01</p><h1 id="page-title">パターン01<span>迷路を、立体で。</span></h1>
       <p class="lead">平面図の壁配置をそのまま3Dへ。視点を変えて、通路と全体の形を確かめられます。</p></div>
-      <span class="revision-badge"><span aria-hidden="true">●</span> 左右・背面に3種類の窓</span>
+      <span class="revision-badge"><span aria-hidden="true">●</span> B1〜C1に半円型トンネル</span>
     </section>
     <dl class="specs" aria-label="迷路の仕様">
       <div><dt>縦 × 横</dt><dd>7 <span>×</span> 7 <small>m</small></dd></div>
@@ -30,7 +30,7 @@ app.innerHTML = `
     <section class="viewer-card" aria-labelledby="viewer-title">
       <div class="viewer-heading"><h2 id="viewer-title">3Dプレビュー</h2><span class="viewer-legend"><i class="start-dot"></i> 入口 A7 <i class="goal-dot"></i> 出口 G7</span></div>
       <div id="maze-stage" class="maze-stage"></div>
-      <p id="navigation-help" class="navigation-help">ドラッグで回転 · ホイールで拡大 · 右ドラッグで移動<br>白い板・○×クイズにカーソルを合わせる・タップで説明（キーボード：迷路を選択してEnterで説明を切り替え、Escで閉じる）<span>タッチ操作：1本指で回転、2本指で拡大・移動</span></p>
+      <p id="navigation-help" class="navigation-help">ドラッグで回転 · ホイールで拡大 · 右ドラッグで移動<br>白い板・○×クイズ・トンネルにカーソルを合わせる・タップで説明（キーボード：迷路を選択してEnterで説明を切り替え、Escで閉じる）<span>タッチ操作：1本指で回転、2本指で拡大・移動</span></p>
     </section>
     <section class="settings" aria-labelledby="settings-title">
       <div class="section-heading"><h2 id="settings-title">表示設定</h2><p>見たい角度と表示に調整できます。</p></div>
@@ -38,7 +38,7 @@ app.innerHTML = `
       <div class="setting-row"><label for="view-mode">視点</label><select id="view-mode"><option value="angled">斜めから</option><option value="top">真上から</option><option value="side">真横から（自由回転）</option><option value="front">正面から</option><option value="right">右側から</option><option value="back">背面から</option><option value="left">左側から</option></select></div>
       <div class="setting-row"><label for="rotation">回転 <output id="rotation-value" for="rotation">45°</output></label><input id="rotation" type="range" min="0" max="359" step="1" value="45"></div>
       <div class="setting-row"><label for="zoom">拡大率 <output id="zoom-value" for="zoom">100%</output></label><input id="zoom" type="range" min="100" max="300" step="10" value="100"></div>
-      <div class="setting-row toggle-row"><div><label for="transparent-walls">壁を透かす</label><p>奥の通路や、壁に隠れた正解ルートを確認できます。</p></div><input id="transparent-walls" type="checkbox" role="switch"></div>
+      <div class="setting-row toggle-row"><div><label for="transparent-walls">壁を透かす</label><p>壁とトンネルを透かし、奥の通路や正解ルートを確認できます。</p></div><input id="transparent-walls" type="checkbox" role="switch"></div>
       <div class="setting-row toggle-row"><div><label for="wall-grid">壁に1m間隔の縦の点線を表示</label><p>壁パネルの区切りを確認できます。</p></div><input id="wall-grid" type="checkbox" role="switch"></div>
       <div class="setting-row toggle-row"><div><label for="show-windows">外壁の窓を表示</label><p>正面以外の3面を、窓あり／窓なしに切り替えます。</p></div><input id="show-windows" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-person">人物を表示</label><p>入口の左横に身長130cmの人物を表示し、大きさを比較できます。</p></div><input id="show-person" type="checkbox" role="switch" checked></div>
@@ -46,7 +46,7 @@ app.innerHTML = `
       <div class="setting-actions"><button id="reset-view" type="button">全体表示に戻す <span aria-hidden="true">↗</span></button><p id="view-status" role="status" aria-live="polite">斜めから全体を表示しています。</p></div>
     </section>
     </div>
-    <aside class="source-note" aria-label="取り込んだ図面の情報"><div><strong>取り込んだ迷路案</strong><p>パターン01 · F2–G2間／F3–G3間とD5・D6中央の壁追加を反映</p><p class="route-summary">正解ルート ${analysis.route.length}通行区画 · 曲がり角 ${analysis.turns}回 · 分岐 ${analysis.branches}か所</p><p>B2・C2上辺の壁を下へ50cm移動し、両端の上へ突き出す壁を削除しています。</p><p>D5・D6は左右0.5m幅。正解はD7上辺の右〇から東側を通ります。</p><p>壁用段ボールは高さ1.5mで計${pattern01.walls.length}枚（B2・C2横の2枚は幅0.5m）。クイズの透かし壁と正面の白い板は別扱いです。</p></div><a href="${import.meta.env.BASE_URL}reference/pattern01.pdf" target="_blank" rel="noopener">元の平面図を見る <span aria-hidden="true">↗</span></a></aside>
+    <aside class="source-note" aria-label="取り込んだ図面の情報"><div><strong>取り込んだ迷路案</strong><p>パターン01 · F2–G2間／F3–G3間とD5・D6中央の壁追加を反映</p><p class="route-summary">正解ルート ${analysis.route.length}通行区画 · 曲がり角 ${analysis.turns}回 · 分岐 ${analysis.branches}か所</p><p>B2・C2上辺の壁を下へ50cm移動し、両端の上へ突き出す壁を削除しています。</p><p>D5・D6は左右0.5m幅。正解はD7上辺の右〇から東側を通ります。</p><p>B1〜C1に幅1.5m・長さ2m・中央高さ1mの半円型トンネルを配置しています。</p><p>壁用段ボールは高さ1.5mで計${pattern01.walls.length}枚（B2・C2横の2枚は幅0.5m）。クイズの透かし壁・正面の白い板・トンネルは別扱いです。</p></div><a href="${import.meta.env.BASE_URL}reference/pattern01.pdf" target="_blank" rel="noopener">元の平面図を見る <span aria-hidden="true">↗</span></a></aside>
     <footer class="page-footer">ADVENTURE BUILDERS <span>小さな段ボールから、大きな冒険を。</span></footer>
   </main>`;
 
