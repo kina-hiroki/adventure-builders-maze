@@ -54,7 +54,16 @@ export function isPassageBlocked(passage: Wall, walls: Wall[]): boolean {
 
 export function createRoutePoints(plan: MazePlan, route: string[]): Point[] {
   const cells = new Map(createMazeCells(plan).map(cell => [cell.id, cell]));
-  const center = (cell: MazeCell): Point => [(cell.from[0] + cell.to[0]) / 2, (cell.from[1] + cell.to[1]) / 2];
+  const center = (cell: MazeCell): Point => {
+    const point: Point = plan.solutionCenters?.[cell.id]
+      ?? [(cell.from[0] + cell.to[0]) / 2, (cell.from[1] + cell.to[1]) / 2];
+    if (!point.every(Number.isFinite) || point[0] <= cell.from[0] || point[0] >= cell.to[0]
+      || point[1] <= cell.from[1] || point[1] >= cell.to[1])
+      throw new Error(`正解ルートの通過位置が不正です: ${cell.id}`);
+    return point;
+  };
+  const crossing = (a: number, b: number, from: number, to: number) =>
+    a === b && a > from && a < to ? a : (from + to) / 2;
   const points: Point[] = [];
   function add(point: Point) {
     const previous = points.at(-1);
@@ -77,10 +86,10 @@ export function createRoutePoints(plan: MazePlan, route: string[]): Point[] {
       const passage = passageBetween(previous, cell);
       if (!passage || isPassageBlocked(passage, plan.walls)) throw new Error('正解ルートが壁を横切っています。');
       if (passage.from[0] === passage.to[0]) {
-        const z = (passage.from[1] + passage.to[1]) / 2;
+        const z = crossing(previousCenter[1], nextCenter[1], passage.from[1], passage.to[1]);
         add([previousCenter[0], z]); add([nextCenter[0], z]);
       } else {
-        const x = (passage.from[0] + passage.to[0]) / 2;
+        const x = crossing(previousCenter[0], nextCenter[0], passage.from[0], passage.to[0]);
         add([x, previousCenter[1]]); add([x, nextCenter[1]]);
       }
     }

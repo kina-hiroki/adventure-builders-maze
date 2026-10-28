@@ -20,9 +20,8 @@ export function analyzeMaze(plan: MazePlan) {
     const [x1, z1] = wall.from;
     const [x2, z2] = wall.to;
     if (![x1, z1, x2, z2].every(value => Number.isInteger(value * 2))
-      || Math.abs(x1 - x2) + Math.abs(z1 - z2) !== 1
-      || (x1 === x2 ? !Number.isInteger(z1) || !Number.isInteger(z2)
-        : !Number.isInteger(x1) || !Number.isInteger(x2))
+      || ![0.5, 1].includes(Math.abs(x1 - x2) + Math.abs(z1 - z2))
+      || (x1 !== x2 && z1 !== z2)
       || x1 < 0 || x2 < 0 || z1 < 0 || z2 < 0
       || x1 > plan.columns || x2 > plan.columns || z1 > plan.rows || z2 > plan.rows) {
       throw new Error('壁の座標・長さが不正です。');
@@ -43,22 +42,35 @@ export function analyzeMaze(plan: MazePlan) {
     }
   }
   if (!graph.has(plan.entry) || !graph.has(plan.exit)) throw new Error('入口・出口が範囲外です。');
-  const previous = new Map<string, string | null>([[plan.entry, null]]);
-  const queue = [plan.entry];
-  for (let i = 0; i < queue.length; i++) {
-    for (const next of graph.get(queue[i])!) {
-      if (!previous.has(next)) {
-        previous.set(next, queue[i]);
-        queue.push(next);
+  function searchFrom(start: string) {
+    const previous = new Map<string, string | null>([[start, null]]);
+    const queue = [start];
+    for (let i = 0; i < queue.length; i++) {
+      for (const next of graph.get(queue[i])!) {
+        if (!previous.has(next)) {
+          previous.set(next, queue[i]);
+          queue.push(next);
+        }
       }
     }
+    return previous;
   }
+  const previous = searchFrom(plan.entry);
   if (!previous.has(plan.exit)) throw new Error('入口から出口に到達できません。');
   const route: string[] = [];
-  let current: string | null = plan.exit;
-  while (current !== null) {
-    route.unshift(current);
-    current = previous.get(current)!;
+  let start = plan.entry;
+  for (const target of [...(plan.solutionVia ?? []), plan.exit]) {
+    if (!graph.has(target)) throw new Error(`正解ルートの経由区画が不正です: ${target}`);
+    const paths = start === plan.entry ? previous : searchFrom(start);
+    if (!paths.has(target)) throw new Error(`正解ルートの経由区画に到達できません: ${target}`);
+    const leg: string[] = [];
+    let current: string | null = target;
+    while (current !== null) {
+      leg.unshift(current);
+      current = paths.get(current)!;
+    }
+    route.push(...(route.length ? leg.slice(1) : leg));
+    start = target;
   }
   const routePoints = createRoutePoints(plan, route);
   const externalWalls = plan.walls.filter(({ from, to }) =>

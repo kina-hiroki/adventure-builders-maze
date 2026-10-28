@@ -22,5 +22,7 @@ export interface MazePlan {
   addedWalls: string[];
   walls: Wall[];
   quizWalls: QuizWall[];
+  solutionVia?: string[]; // 正解ルートが順に通る区画。省略時は入口から出口への最短経路。
+  solutionCenters?: Record<string, Point>; // 広がった通路などに合わせる描画上の通過位置。
   solution: string[];
 }

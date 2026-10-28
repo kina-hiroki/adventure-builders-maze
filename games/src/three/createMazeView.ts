@@ -113,6 +113,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   const verticalMarkers = new Map<string, THREE.Vector3[]>();
   for (const wall of plan.walls) {
     const vertical = wall.from[0] === wall.to[0];
+    const length = Math.hypot(wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]) * plan.cellSize;
     const added = vertical && wall.from[0] === 6 && (wall.from[1] === 1 || wall.from[1] === 2);
     const material = added ? addedMaterial : sideMaterial;
     const windowShape = outerWindows.get(wallKey(wall));
@@ -125,8 +126,8 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       }
       geometry = windowGeometry;
     } else {
-      geometry = new THREE.BoxGeometry(vertical ? thickness : plan.cellSize, h,
-        vertical ? plan.cellSize : thickness);
+      geometry = new THREE.BoxGeometry(vertical ? thickness : length, h,
+        vertical ? length : thickness);
     }
     const mesh = new THREE.Mesh(geometry, windowShape ? [material, topMaterial]
       : [material, material, topMaterial, material, material, material]);
