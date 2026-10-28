@@ -43,6 +43,7 @@ app.innerHTML = `
       <div class="setting-row toggle-row"><div><label for="show-windows">外壁の窓を表示</label><p>正面以外の3面を、窓あり／窓なしに切り替えます。</p></div><input id="show-windows" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-person">人物を表示</label><p>入口の左横に身長130cmの人物を表示し、大きさを比較できます。</p></div><input id="show-person" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-quiz">○×クイズを表示</label><p>赤✕・青〇の透かし壁を表示します。</p></div><input id="show-quiz" type="checkbox" role="switch" checked></div>
+      <div class="setting-row toggle-row"><div><label for="show-tunnels">トンネルを表示</label><p>B1〜C1の半円型トンネルを表示します。</p></div><input id="show-tunnels" type="checkbox" role="switch" checked></div>
       <div class="setting-actions"><button id="reset-view" type="button">全体表示に戻す <span aria-hidden="true">↗</span></button><p id="view-status" role="status" aria-live="polite">斜めから全体を表示しています。</p></div>
     </section>
     </div>
@@ -95,6 +96,7 @@ const loader = loadView({
     bind('show-windows', 'change', () => view!.setWindows(element<HTMLInputElement>('show-windows').checked));
     bind('show-person', 'change', () => view!.setPerson(element<HTMLInputElement>('show-person').checked));
     bind('show-quiz', 'change', () => view!.setQuiz(element<HTMLInputElement>('show-quiz').checked));
+    bind('show-tunnels', 'change', () => view!.setTunnels(element<HTMLInputElement>('show-tunnels').checked));
     bind('reset-view', 'click', () => { mode.value = 'angled'; view!.reset(); status.textContent = '斜めからの全体表示に戻しました。'; });
     setBusy(false);
     status.textContent = '斜めから全体を表示しています。';
