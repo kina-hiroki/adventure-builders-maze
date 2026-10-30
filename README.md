@@ -1,5 +1,7 @@
 # Adventure Builders（集会の裏で冒険仕込む仲間）
 
+ブラウザーで確認： [https://kina-hiroki.github.io/adventure-builders-maze/](https://kina-hiroki.github.io/adventure-builders-maze/)
+
 段ボール迷路「パターン01」を立体で確認する、ブラウザー向けの3Dアプリです。
 Vite・TypeScript・Three.jsを使用し、アプリのソースは `games/` にまとめています。
 
