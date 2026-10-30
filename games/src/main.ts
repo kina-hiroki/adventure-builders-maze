@@ -38,12 +38,13 @@ app.innerHTML = `
       <div class="setting-row"><label for="view-mode">視点</label><select id="view-mode"><option value="angled">斜めから</option><option value="top">真上から</option><option value="side">真横から（自由回転）</option><option value="front">正面から</option><option value="right">右側から</option><option value="back">背面から</option><option value="left">左側から</option></select></div>
       <div class="setting-row"><label for="rotation">回転 <output id="rotation-value" for="rotation">45°</output></label><input id="rotation" type="range" min="0" max="359" step="1" value="45"></div>
       <div class="setting-row"><label for="zoom">拡大率 <output id="zoom-value" for="zoom">100%</output></label><input id="zoom" type="range" min="100" max="300" step="10" value="100"></div>
-      <div class="setting-row toggle-row"><div><label for="transparent-walls">壁を透かす</label><p>壁とトンネルを透かし、奥の通路や正解ルートを確認できます。</p></div><input id="transparent-walls" type="checkbox" role="switch"></div>
+      <div class="setting-row toggle-row"><div><label for="transparent-walls">壁を透かす</label><p>迷路の壁を透かし、奥の通路や正解ルートを確認できます。</p></div><input id="transparent-walls" type="checkbox" role="switch"></div>
       <div class="setting-row toggle-row"><div><label for="wall-grid">壁に1m間隔の縦の点線を表示</label><p>壁パネルの区切りを確認できます。</p></div><input id="wall-grid" type="checkbox" role="switch"></div>
       <div class="setting-row toggle-row"><div><label for="show-windows">外壁の窓を表示</label><p>正面以外の3面を、窓あり／窓なしに切り替えます。</p></div><input id="show-windows" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-person">人物を表示</label><p>入口の左横に身長130cmの人物を表示し、大きさを比較できます。</p></div><input id="show-person" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-quiz">○×クイズを表示</label><p>赤✕・青〇の透かし壁を表示します。</p></div><input id="show-quiz" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-tunnels">トンネルを表示</label><p>B1〜C1の半円型トンネルを表示します。</p></div><input id="show-tunnels" type="checkbox" role="switch" checked></div>
+      <div class="setting-row toggle-row"><div><label for="transparent-tunnels">トンネルを透かす</label><p>天井と側壁を透かし、トンネル内の通路や正解ルートを確認できます。</p></div><input id="transparent-tunnels" type="checkbox" role="switch"></div>
       <div class="setting-actions"><button id="reset-view" type="button">全体表示に戻す <span aria-hidden="true">↗</span></button><p id="view-status" role="status" aria-live="polite">斜めから全体を表示しています。</p></div>
     </section>
     </div>
@@ -97,6 +98,7 @@ const loader = loadView({
     bind('show-person', 'change', () => view!.setPerson(element<HTMLInputElement>('show-person').checked));
     bind('show-quiz', 'change', () => view!.setQuiz(element<HTMLInputElement>('show-quiz').checked));
     bind('show-tunnels', 'change', () => view!.setTunnels(element<HTMLInputElement>('show-tunnels').checked));
+    bind('transparent-tunnels', 'change', () => view!.setTunnelTransparent(element<HTMLInputElement>('transparent-tunnels').checked));
     bind('reset-view', 'click', () => { mode.value = 'angled'; view!.reset(); status.textContent = '斜めからの全体表示に戻しました。'; });
     setBusy(false);
     status.textContent = '斜めから全体を表示しています。';
