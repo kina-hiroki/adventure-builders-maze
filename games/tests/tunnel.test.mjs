@@ -88,7 +88,7 @@ test('トンネルの両端が開き、床上75cmの正解ルート全体がト�
   });
 });
 
-test('壁を透かす設定でトンネルも透け、解除すると天井・側壁・輪郭の元の状態に戻る', () => {
+test('トンネルの透かし設定で天井・側壁・輪郭が透け、解除すると元の状態に戻る', () => {
   withTunnels(({ group, setTransparent }) => {
     const before = new Map();
     group.traverse(object => {
