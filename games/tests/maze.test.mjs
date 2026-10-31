@@ -68,6 +68,18 @@ test('F7中央に横1m・右辺下半分に縦50cmの壁があり、北側から
   assert.throws(() => createRoutePoints(pattern01, ['F7S', 'G7']), /壁/);
 });
 
+test('F7左辺は上半分が青〇、下半分が赤✕で、正解線が青〇の中央を通る', () => {
+  assert.deepEqual(pattern01.quizWalls.filter(wall => wall.cell === 'F7'), [
+    { cell: 'F7', edge: 'left', span: [0, 0.5], symbol: '〇', color: '#2563eb' },
+    { cell: 'F7', edge: 'left', span: [0.5, 1], symbol: '✕', color: '#dc2626' },
+  ]);
+  const { graph, routePoints } = analyzeMaze(pattern01);
+  const crossings = routePoints.slice(1).filter((b, i) =>
+    routePoints[i][0] < 5 && b[0] > 5 && routePoints[i][1] >= 6 && routePoints[i][1] <= 7);
+  assert.deepEqual(crossings.map(point => point[1]), [6.25]);
+  assert.deepEqual(graph.get('F7S'), ['E7']);
+});
+
 test('正解線はB1・C1付近の幅1.5mの通路中央を直線で通る', () => {
   const { route, routePoints } = analyzeMaze(pattern01);
   assert.deepEqual(pattern01.solutionVia, ['B1', 'C1']);

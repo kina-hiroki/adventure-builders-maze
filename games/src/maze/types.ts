@@ -10,8 +10,8 @@ export interface Tunnel {
 }
 export interface QuizWall {
   cell: string;
-  edge: 'top';
-  span?: readonly [number, number]; // 上辺内の位置（0〜1）。省略時は上辺全体。
+  edge: 'top' | 'left';
+  span?: readonly [number, number]; // 辺内の位置（0〜1）。上辺は左から、左辺は上から。省略時は辺全体。
   symbol: '〇' | '✕';
   color: string;
 }

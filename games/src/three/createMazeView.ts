@@ -29,8 +29,13 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   const personDescription = '入口の左横に身長130cmの人物。';
   const tunnelDescription = (plan.tunnels ?? []).map(tunnel =>
     `${tunnel.name}。幅${tunnel.width}m・中央高さ${tunnel.height}m。`).join('');
-  const quizDescription = plan.quizWalls.map(wall =>
-    `${wall.cell}の上辺${wall.span ? (wall.span[0] === 0 ? '左半分' : '右半分') : ''}に${wall.symbol === '✕' ? '赤い✕（行き止まり）' : '青い〇（正解）'}の半透明の壁。`).join('');
+  const quizDescription = plan.quizWalls.map(wall => {
+    const edge = wall.edge === 'left' ? '左辺' : '上辺';
+    const half = wall.span ? (wall.edge === 'left'
+      ? (wall.span[0] === 0 ? '上半分' : '下半分')
+      : (wall.span[0] === 0 ? '左半分' : '右半分')) : '';
+    return `${wall.cell}の${edge}${half}に${wall.symbol === '✕' ? '赤い✕（行き止まり）' : '青い〇（正解）'}の半透明の壁。`;
+  }).join('');
   let windowsVisible = true;
   let personVisible = true;
   let quizVisible = true;
@@ -248,7 +253,12 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       color: wall.color, transparent: true, opacity: 0.25, depthWrite: false,
     }));
     const [x, z] = cellPoint(wall.cell);
-    mesh.position.copy(world(x + (start + end) / 2, h / 2, z));
+    if (wall.edge === 'left') {
+      mesh.position.copy(world(x, h / 2, z + (start + end) / 2));
+      mesh.rotation.y = Math.PI / 2;
+    } else {
+      mesh.position.copy(world(x + (start + end) / 2, h / 2, z));
+    }
     mesh.name = `quiz-wall-${wall.cell}-${wall.symbol}`;
     mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry),
       new THREE.LineBasicMaterial({ color: wall.color, transparent: true, opacity: 0.65,
