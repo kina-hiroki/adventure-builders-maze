@@ -76,10 +76,19 @@ export function analyzeMaze(plan: MazePlan) {
   const externalWalls = plan.walls.filter(({ from, to }) =>
     (from[0] === to[0] && (from[0] === 0 || from[0] === plan.columns))
     || (from[1] === to[1] && (from[1] === 0 || from[1] === plan.rows))).length;
+  const fullWidthPanels = plan.walls.filter(wall =>
+    Math.abs(wall.to[0] - wall.from[0]) + Math.abs(wall.to[1] - wall.from[1]) === 1).length;
+  const halfWidthPanels = plan.walls.length - fullWidthPanels;
+  const wallMaterials = {
+    fullWidthPanels,
+    halfWidthPanels,
+    requiredSheets: fullWidthPanels + Math.ceil(halfWidthPanels / 2),
+  };
   return {
     route,
     routePoints,
     graph,
+    wallMaterials,
     connectedCells: previous.size,
     edges: [...graph.values()].reduce((sum, next) => sum + next.length, 0) / 2,
     branches: [...graph.values()].filter(next => next.length >= 3).length,

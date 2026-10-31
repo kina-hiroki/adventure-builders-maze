@@ -18,7 +18,9 @@ export const pattern01: MazePlan = {
     "F2–G2",
     "F3–G3",
     "D5中央（南北方向）",
-    "D6中央（南北方向）"
+    "D6中央（南北方向）",
+    "F7中央（東西方向・1m）",
+    "F7右辺下半分（南北方向・0.5m）"
   ],
   "quizWalls": [
     { "cell": "F2", "edge": "top", "symbol": "✕", "color": "#dc2626" },
@@ -27,6 +29,8 @@ export const pattern01: MazePlan = {
     { "cell": "D7", "edge": "top", "span": [0.5, 1], "symbol": "〇", "color": "#2563eb" }
   ],
   "walls": [
+    { "from": [5, 6.5], "to": [6, 6.5] },
+    { "from": [6, 6.5], "to": [6, 7] },
     { "from": [3.5, 4], "to": [3.5, 5] },
     { "from": [3.5, 5], "to": [3.5, 6] },
     {
@@ -711,7 +715,7 @@ export const pattern01: MazePlan = {
     "F6",
     "E6",
     "E7",
-    "F7",
+    "F7N",
     "G7"
   ]
 };
