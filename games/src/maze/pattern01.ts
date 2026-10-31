@@ -19,6 +19,7 @@ export const pattern01: MazePlan = {
     "F3–G3",
     "D5中央（南北方向）",
     "D6中央（南北方向）",
+    "F5中央（南北方向・1m）",
     "F7中央（東西方向・1m）",
     "F7右辺下半分（南北方向・0.5m）"
   ],
@@ -31,6 +32,7 @@ export const pattern01: MazePlan = {
     { "cell": "F7", "edge": "left", "span": [0.5, 1], "symbol": "✕", "color": "#dc2626" }
   ],
   "walls": [
+    { "from": [5.5, 4], "to": [5.5, 5] },
     { "from": [5, 6.5], "to": [6, 6.5] },
     { "from": [6, 6.5], "to": [6, 7] },
     { "from": [3.5, 4], "to": [3.5, 5] },
@@ -729,7 +731,7 @@ export const pattern01: MazePlan = {
     "G3",
     "G4",
     "F4",
-    "F5",
+    "F5E",
     "G5",
     "G6",
     "F6",
