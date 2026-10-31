@@ -3,6 +3,7 @@ import { animateSolutionRoute } from './animateSolutionRoute.ts';
 import { attachPartTooltip } from './attachPartTooltip.ts';
 import { createScalePerson, scalePersonPosition } from './createScalePerson.ts';
 import { createMazeTunnels } from './createMazeTunnels.ts';
+import { createMazeMountains } from './createMazeMountains.ts';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
@@ -29,6 +30,8 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   const personDescription = '入口の左横に身長130cmの人物。';
   const tunnelDescription = (plan.tunnels ?? []).map(tunnel =>
     `${tunnel.name}。幅${tunnel.width}m・中央高さ${tunnel.height}m。`).join('');
+  const mountainDescription = (plan.mountains ?? []).map(mountain =>
+    `${mountain.name}。幅${mountain.width}m・長さ${Math.hypot(mountain.to[0] - mountain.from[0], mountain.to[1] - mountain.from[1]) * plan.cellSize}m・高さ${mountain.height}m。`).join('');
   const quizDescription = plan.quizWalls.map(wall => {
     const edge = wall.edge === 'left' ? '左辺' : '上辺';
     const half = wall.span ? (wall.edge === 'left'
@@ -41,9 +44,12 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   let quizVisible = true;
   let tunnelsVisible = true;
   let tunnelsTransparent = false;
+  let mountainsVisible = true;
+  let mountainsTransparent = false;
   function updateDescription() {
     renderer.domElement.setAttribute('aria-label', mazeDescription
       + (tunnelsVisible ? tunnelDescription + (tunnelsTransparent ? 'トンネルは半透明。' : '') : 'トンネルは非表示。')
+      + (mountainsVisible ? mountainDescription + (mountainsTransparent ? '山越えゾーンは半透明。' : '') : '山越えゾーンは非表示。')
       + (windowsVisible ? windowDescription : '窓なし。')
       + (personVisible ? personDescription : '人物は非表示。')
       + '正面の壁に高さ1.5m・幅5mの白い板。'
@@ -199,6 +205,8 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   scene.add(walls);
   const tunnels = createMazeTunnels(plan, thickness);
   scene.add(tunnels.group);
+  const mountains = createMazeMountains(plan);
+  scene.add(mountains.group);
   const wallGrid = new THREE.LineSegments(
     new THREE.BufferGeometry().setFromPoints([...verticalMarkers.values()].flat()),
     new THREE.LineDashedMaterial({ color: '#745337', dashSize: 0.055, gapSize: 0.045,
@@ -362,6 +370,14 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
         size: `幅 ${specification.width} m × 長さ ${length} m × 中央高さ ${specification.height} m`,
         description: `${specification.name}。半円のアーチ型の天井をくぐって進みます。` };
     }),
+    ...mountains.group.children.map((part, index) => {
+      const specification = plan.mountains![index];
+      const length = Math.hypot(specification.to[0] - specification.from[0],
+        specification.to[1] - specification.from[1]) * plan.cellSize;
+      return { part, id: `mountain-tooltip-${index}`,
+        size: `幅 ${specification.width} m × 長さ ${length} m × 高さ ${specification.height} m`,
+        description: `${specification.name}。中央の頂点まで上り、反対側へ下って進みます。` };
+    }),
   ]);
 
   let disposed = false;
@@ -465,6 +481,19 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     setTunnelTransparent(value: boolean) {
       tunnels.setTransparent(value);
       tunnelsTransparent = value;
+      updateDescription();
+      render();
+    },
+    setMountains(value: boolean) {
+      partTooltip.hide();
+      mountains.group.visible = value;
+      mountainsVisible = value;
+      updateDescription();
+      render();
+    },
+    setMountainTransparent(value: boolean) {
+      mountains.setTransparent(value);
+      mountainsTransparent = value;
       updateDescription();
       render();
     },

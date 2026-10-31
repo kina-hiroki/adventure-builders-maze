@@ -666,6 +666,24 @@ export const pattern01: MazePlan = {
       "height": 1
     }
   ],
+  "mountains": [
+    {
+      "id": "a5-a6-mountain",
+      "name": "A5〜A6の山越えゾーン",
+      "from": [0.5, 4],
+      "to": [0.5, 6],
+      "width": 1,
+      "height": 0.5
+    },
+    {
+      "id": "f6-mountain",
+      "name": "F6の山越えゾーン",
+      "from": [5, 5.5],
+      "to": [6, 5.5],
+      "width": 1,
+      "height": 0.5
+    }
+  ],
   "solutionVia": ["B1", "C1"],
   "solutionCenters": {
     "A1": [0.5, 0.75],
