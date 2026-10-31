@@ -11,8 +11,8 @@ body { margin: 0; background: #f7f5f0; }
 .sample-intro p:last-child { margin: 0; color: #627168; font-size: 14px; }
 .sample-layout { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 28px; align-items: start; }
 .sample-viewer { min-width: 0; }
-#tunnel-stage { height: clamp(330px, 44vw, 540px); position: relative; background: #eaece5; border-radius: 12px; overflow: hidden; }
-#tunnel-stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+:is(#tunnel-stage, #mountain-stage) { height: clamp(330px, 44vw, 540px); position: relative; background: #eaece5; border-radius: 12px; overflow: hidden; }
+:is(#tunnel-stage, #mountain-stage) canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .stage-caption { position: absolute; top: 20px; left: 22px; pointer-events: none; color: #516357; font-size: 12px; letter-spacing: .05em; }
 .sample-help { margin: 12px 0 0; color: #64716b; font-size: 12px; line-height: 1.7; }
 .sample-settings { padding: 5px 0; }
@@ -34,7 +34,7 @@ body { margin: 0; background: #f7f5f0; }
   .sample-layout { grid-template-columns: 1fr; gap: 24px; }
   .sample-header { flex-wrap: wrap; padding-bottom: 18px; }
   .sample-intro { padding-top: 26px; }
-  #tunnel-stage { height: 360px; }
+  :is(#tunnel-stage, #mountain-stage) { height: 360px; }
   .sample-views { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .sample-views button { text-align: center; padding: 10px 4px; }
   .sample-dimensions { display: flex; gap: 16px; margin-bottom: 20px; }

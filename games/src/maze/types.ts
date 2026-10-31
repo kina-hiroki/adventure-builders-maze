@@ -8,6 +8,14 @@ export interface Tunnel {
   width: number; // メートル単位の内寸。
   height: number; // メートル単位の中央高さ（内寸）。
 }
+export interface Mountain {
+  id: string;
+  name: string;
+  from: Point; // 山の始点。迷路のグリッド座標。
+  to: Point; // 山の終点。長手方向と長さを指定。
+  width: number; // メートル単位の幅。
+  height: number; // メートル単位の頂点の高さ。
+}
 export interface QuizWall {
   cell: string;
   edge: 'top' | 'left';
@@ -31,6 +39,7 @@ export interface MazePlan {
   walls: Wall[];
   quizWalls: QuizWall[];
   tunnels?: Tunnel[];
+  mountains?: Mountain[];
   solutionVia?: string[]; // 正解ルートが順に通る区画。省略時は入口から出口への最短経路。
   solutionCenters?: Record<string, Point>; // 広がった通路などに合わせる描画上の通過位置。
   solution: string[];

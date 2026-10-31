@@ -30,7 +30,7 @@ app.innerHTML = `
     <section class="viewer-card" aria-labelledby="viewer-title">
       <div class="viewer-heading"><h2 id="viewer-title">3Dプレビュー</h2><span class="viewer-legend"><i class="start-dot"></i> 入口 A7 <i class="goal-dot"></i> 出口 G7</span></div>
       <div id="maze-stage" class="maze-stage"></div>
-      <p id="navigation-help" class="navigation-help">ドラッグで回転 · ホイールで拡大 · 右ドラッグで移動<br>白い板・○×クイズ・トンネルにカーソルを合わせる・タップで説明（キーボード：迷路を選択してEnterで説明を切り替え、Escで閉じる）<span>タッチ操作：1本指で回転、2本指で拡大・移動</span></p>
+      <p id="navigation-help" class="navigation-help">ドラッグで回転 · ホイールで拡大 · 右ドラッグで移動<br>白い板・○×クイズ・トンネル・山越えゾーンにカーソルを合わせる・タップで説明（キーボード：迷路を選択してEnterで説明を切り替え、Escで閉じる）<span>タッチ操作：1本指で回転、2本指で拡大・移動</span></p>
     </section>
     <section class="settings" aria-labelledby="settings-title">
       <div class="section-heading"><h2 id="settings-title">表示設定</h2><p>見たい角度と表示に調整できます。</p></div>
@@ -45,10 +45,12 @@ app.innerHTML = `
       <div class="setting-row toggle-row"><div><label for="show-quiz">○×クイズを表示</label><p>赤✕・青〇の透かし壁を表示します。</p></div><input id="show-quiz" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-tunnels">トンネルを表示</label><p>B1〜C1の半円型トンネルを表示します。</p></div><input id="show-tunnels" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="transparent-tunnels">トンネルを透かす</label><p>天井と側壁を透かし、トンネル内の通路や正解ルートを確認できます。</p></div><input id="transparent-tunnels" type="checkbox" role="switch"></div>
+      <div class="setting-row toggle-row"><div><label for="show-mountains">山越えゾーンを表示</label><p>A5〜A6（長さ2m）とF6（長さ1m）の山型パーツを表示します。</p></div><input id="show-mountains" type="checkbox" role="switch" checked></div>
+      <div class="setting-row toggle-row"><div><label for="transparent-mountains">山越えゾーンを透かす</label><p>山型パーツを半透明にし、通路や正解ルートを確認できます。</p></div><input id="transparent-mountains" type="checkbox" role="switch"></div>
       <div class="setting-actions"><button id="reset-view" type="button">全体表示に戻す <span aria-hidden="true">↗</span></button><p id="view-status" role="status" aria-live="polite">斜めから全体を表示しています。</p></div>
     </section>
     </div>
-    <aside class="source-note" aria-label="取り込んだ図面の情報"><div><strong>取り込んだ迷路案</strong><p>パターン01 · F2–G2間／F3–G3間とD5・D6中央の壁追加を反映</p><p class="route-summary">正解ルート ${analysis.route.length}通行区画 · 曲がり角 ${analysis.turns}回 · 分岐 ${analysis.branches}か所</p><p>B2・C2上辺の壁を下へ50cm移動し、両端の上へ突き出す壁を削除しています。</p><p>D5・D6は左右0.5m幅。正解はD7上辺の右〇から東側を通ります。</p><p>F7中央に横1m、右辺の下半分に縦50cmの壁を追加しています。正解はF7の上半分からG7へ進みます。</p><p>B1〜C1に幅1.5m・長さ2m・中央高さ1mの半円型トンネルを配置しています。</p><p>壁用段ボールは高さ1.5m・幅1mの原板で${analysis.wallMaterials.requiredSheets}枚。切り出し後の壁パネルは幅1mが${analysis.wallMaterials.fullWidthPanels}枚、幅0.5mが${analysis.wallMaterials.halfWidthPanels}枚の計${pattern01.walls.length}枚です。クイズの透かし壁・正面の白い板・トンネルは別扱いです。</p></div><a href="${import.meta.env.BASE_URL}reference/pattern01.pdf" target="_blank" rel="noopener">元の平面図を見る <span aria-hidden="true">↗</span></a></aside>
+    <aside class="source-note" aria-label="取り込んだ図面の情報"><div><strong>取り込んだ迷路案</strong><p>パターン01 · F2–G2間／F3–G3間とD5・D6中央の壁追加を反映</p><p class="route-summary">正解ルート ${analysis.route.length}通行区画 · 曲がり角 ${analysis.turns}回 · 分岐 ${analysis.branches}か所</p><p>B2・C2上辺の壁を下へ50cm移動し、両端の上へ突き出す壁を削除しています。</p><p>D5・D6は左右0.5m幅。正解はD7上辺の右〇から東側を通ります。</p><p>F7中央に横1m、右辺の下半分に縦50cmの壁を追加しています。正解はF7の上半分からG7へ進みます。</p><p>B1〜C1に幅1.5m・長さ2m・中央高さ1mの半円型トンネルを配置しています。</p><p>A5〜A6に南北2m、F6に東西1mの山越えゾーンを配置しています。幅は1m、高さは50cmです。</p><p>壁用段ボールは高さ1.5m・幅1mの原板で${analysis.wallMaterials.requiredSheets}枚。切り出し後の壁パネルは幅1mが${analysis.wallMaterials.fullWidthPanels}枚、幅0.5mが${analysis.wallMaterials.halfWidthPanels}枚の計${pattern01.walls.length}枚です。クイズの透かし壁・正面の白い板・トンネル・山越えゾーンは別扱いです。</p></div><a href="${import.meta.env.BASE_URL}reference/pattern01.pdf" target="_blank" rel="noopener">元の平面図を見る <span aria-hidden="true">↗</span></a></aside>
     <footer class="page-footer">ADVENTURE BUILDERS <span>小さな段ボールから、大きな冒険を。</span></footer>
   </main>`;
 
@@ -99,6 +101,8 @@ const loader = loadView({
     bind('show-quiz', 'change', () => view!.setQuiz(element<HTMLInputElement>('show-quiz').checked));
     bind('show-tunnels', 'change', () => view!.setTunnels(element<HTMLInputElement>('show-tunnels').checked));
     bind('transparent-tunnels', 'change', () => view!.setTunnelTransparent(element<HTMLInputElement>('transparent-tunnels').checked));
+    bind('show-mountains', 'change', () => view!.setMountains(element<HTMLInputElement>('show-mountains').checked));
+    bind('transparent-mountains', 'change', () => view!.setMountainTransparent(element<HTMLInputElement>('transparent-mountains').checked));
     bind('reset-view', 'click', () => { mode.value = 'angled'; view!.reset(); status.textContent = '斜めからの全体表示に戻しました。'; });
     setBusy(false);
     status.textContent = '斜めから全体を表示しています。';
