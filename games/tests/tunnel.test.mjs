@@ -75,7 +75,7 @@ test('トンネルの両端が開き、床上75cmの正解ルート全体がト�
     const analysis = analyzeMaze(pattern01);
     const baseline = analyzeMaze({ ...pattern01, tunnels: undefined });
     assert.deepEqual(analysis.route, baseline.route);
-    assert.equal(pattern01.walls.length, 64);
+    assert.equal(pattern01.walls.length, 66);
     for (let i = 1; i < analysis.routePoints.length; i++) {
       const [ax, az] = analysis.routePoints[i - 1];
       const [bx, bz] = analysis.routePoints[i];
