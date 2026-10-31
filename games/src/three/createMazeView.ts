@@ -35,9 +35,10 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
   let personVisible = true;
   let quizVisible = true;
   let tunnelsVisible = true;
+  let tunnelsTransparent = false;
   function updateDescription() {
     renderer.domElement.setAttribute('aria-label', mazeDescription
-      + (tunnelsVisible ? tunnelDescription : 'トンネルは非表示。')
+      + (tunnelsVisible ? tunnelDescription + (tunnelsTransparent ? 'トンネルは半透明。' : '') : 'トンネルは非表示。')
       + (windowsVisible ? windowDescription : '窓なし。')
       + (personVisible ? personDescription : '人物は非表示。')
       + '正面の壁に高さ1.5m・幅5mの白い板。'
@@ -451,8 +452,13 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       updateDescription();
       render();
     },
-    setTransparent(value: boolean) {
+    setTunnelTransparent(value: boolean) {
       tunnels.setTransparent(value);
+      tunnelsTransparent = value;
+      updateDescription();
+      render();
+    },
+    setTransparent(value: boolean) {
       for (const material of wallMaterials) {
         material.transparent = value;
         material.opacity = value ? 0.22 : 1;
