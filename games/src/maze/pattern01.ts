@@ -29,7 +29,9 @@ export const pattern01: MazePlan = {
     { "cell": "D7", "edge": "top", "span": [0, 0.5], "symbol": "✕", "color": "#dc2626" },
     { "cell": "D7", "edge": "top", "span": [0.5, 1], "symbol": "〇", "color": "#2563eb" },
     { "cell": "F7", "edge": "left", "span": [0, 0.5], "symbol": "〇", "color": "#2563eb" },
-    { "cell": "F7", "edge": "left", "span": [0.5, 1], "symbol": "✕", "color": "#dc2626" }
+    { "cell": "F7", "edge": "left", "span": [0.5, 1], "symbol": "✕", "color": "#dc2626" },
+    { "cell": "F5", "edge": "top", "span": [0, 0.5], "symbol": "✕", "color": "#dc2626" },
+    { "cell": "F5", "edge": "top", "span": [0.5, 1], "symbol": "〇", "color": "#2563eb" }
   ],
   "walls": [
     { "from": [5.5, 4], "to": [5.5, 5] },
