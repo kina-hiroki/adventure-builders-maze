@@ -4,7 +4,7 @@ import { pattern01 } from '../src/maze/pattern01.ts';
 import { analyzeMaze, wallKey } from '../src/maze/analyzeMaze.ts';
 import { createMazeCells, createRoutePoints } from '../src/maze/topology.ts';
 
-const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5 B5 B6 C6 C7 D7 D6E D5E E5 E4 D4 D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5N G5 G6 F6 E6 E7 F7N G7'.split(' ');
+const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5 B5 B6 C6 C7 D7 D6E D5E E5 E4 D4 D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5E G5 G6 F6 E6 E7 F7N G7'.split(' ');
 
 test('壁パネル67枚・総延長65.5m・外周26区間・内部41区間になる', () => {
   const result = analyzeMaze(pattern01);
@@ -48,21 +48,23 @@ test('D5・D6・B2・C2・F5・F7を分割した55通行区画がつながり、
   assert.deepEqual(pattern01.solution, expectedRoute);
 });
 
-test('F5中央の横1mの壁で上下が分かれ、正解線は上側50cmの中央を通る', () => {
-  assert.ok(pattern01.walls.some(wall => wallKey(wall) === wallKey({ from: [5, 4.5], to: [6, 4.5] })));
+test('F5中央の縦1mの壁で左右が分かれ、正解線は右側50cmの中央を通る', () => {
+  const keys = new Set(pattern01.walls.map(wallKey));
+  assert.ok(keys.has(wallKey({ from: [5.5, 4], to: [5.5, 5] })));
+  assert.ok(!keys.has(wallKey({ from: [5, 4.5], to: [6, 4.5] })));
   assert.equal(pattern01.wallHeight, 1.5);
   const cells = createMazeCells(pattern01);
-  for (const id of ['F5N', 'F5S']) {
+  for (const id of ['F5W', 'F5E']) {
     const cell = cells.find(cell => cell.id === id);
-    assert.equal(cell.to[0] - cell.from[0], 1);
-    assert.equal(cell.to[1] - cell.from[1], 0.5);
+    assert.equal(cell.to[0] - cell.from[0], 0.5);
+    assert.equal(cell.to[1] - cell.from[1], 1);
   }
   const { graph, route, routePoints } = analyzeMaze(pattern01);
-  assert.deepEqual(graph.get('F5N'), ['F4', 'G5']);
-  assert.deepEqual(graph.get('F5S'), ['G5']);
-  assert.deepEqual(route.slice(route.indexOf('F4'), route.indexOf('F4') + 3), ['F4', 'F5N', 'G5']);
-  assert.ok(routePoints.some(([x, z]) => x === 6.5 && z === 4.25));
-  assert.throws(() => createRoutePoints(pattern01, ['F5N', 'F5S']), /壁/);
+  assert.deepEqual(graph.get('F5W'), ['F4']);
+  assert.deepEqual(graph.get('F5E'), ['F4', 'G5']);
+  assert.deepEqual(route.slice(route.indexOf('F4'), route.indexOf('F4') + 3), ['F4', 'F5E', 'G5']);
+  assert.ok(routePoints.some(([x, z]) => x === 5.75 && z === 4.5));
+  assert.throws(() => createRoutePoints(pattern01, ['F5W', 'F5E']), /壁/);
 });
 
 test('F7中央に横1m・右辺下半分に縦50cmの壁があり、北側からG7へ進める', () => {
