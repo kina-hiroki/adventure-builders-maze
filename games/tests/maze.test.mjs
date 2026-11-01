@@ -4,16 +4,16 @@ import { pattern01 } from '../src/maze/pattern01.ts';
 import { analyzeMaze, wallKey } from '../src/maze/analyzeMaze.ts';
 import { createMazeCells, createRoutePoints } from '../src/maze/topology.ts';
 
-const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5 B5 B6 C6 C7 D7 D6E D5E E5 E4 D4 D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5E G5 G6 F6 E6 E7 F7N G7'.split(' ');
+const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5 C6 C7 D7 D6E D5E E5 E4 D4 D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5E G5 G6 F6 E6 E7 F7N G7'.split(' ');
 
-test('壁パネル67枚・総延長65.5m・外周26区間・内部41区間になる', () => {
+test('壁パネル66枚・総延長64.5m・外周26区間・内部40区間になる', () => {
   const result = analyzeMaze(pattern01);
-  assert.equal(pattern01.walls.length, 67);
-  assert.deepEqual(result.wallMaterials, { fullWidthPanels: 64, halfWidthPanels: 3, requiredSheets: 66 });
+  assert.equal(pattern01.walls.length, 66);
+  assert.deepEqual(result.wallMaterials, { fullWidthPanels: 63, halfWidthPanels: 3, requiredSheets: 65 });
   assert.equal(result.externalWalls, 26);
-  assert.equal(result.internalWalls, 41);
+  assert.equal(result.internalWalls, 40);
   assert.equal(pattern01.walls.reduce((sum, wall) => sum + Math.hypot(
-    wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), 0), 65.5);
+    wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), 0), 64.5);
   assert.equal(pattern01.cellSize, 1);
   assert.equal(pattern01.wallHeight, 1.5);
 });
@@ -38,12 +38,12 @@ test('F2–G2・F3–G3間に指定された追加壁があり通過できない
   }
 });
 
-test('D5・D6・B2・C2・F5・F7を分割した55通行区画がつながり、循環3・分岐11・曲がり角32になる', () => {
+test('D5・D6・B2・C2・F5・F7を分割した55通行区画がつながり、循環4・分岐13・曲がり角28になる', () => {
   const result = analyzeMaze(pattern01);
   assert.equal(result.connectedCells, 55);
-  assert.equal(result.edges, 57);
-  assert.equal(result.branches, 11);
-  assert.equal(result.turns, 32);
+  assert.equal(result.edges, 58);
+  assert.equal(result.branches, 13);
+  assert.equal(result.turns, 28);
   assert.deepEqual(result.route, expectedRoute);
   assert.deepEqual(pattern01.solution, expectedRoute);
 });
@@ -126,7 +126,7 @@ test('正解線はB1・C1付近の幅1.5mの通路中央を直線で通る', () 
       && Math.min(routePoints[i][0], b[0]) <= x && Math.max(routePoints[i][0], b[0]) >= x));
   }
   const shortest = analyzeMaze({ ...pattern01, solutionVia: undefined });
-  assert.equal(shortest.route.length, 43);
+  assert.equal(shortest.route.length, 41);
   assert.ok(shortest.route.includes('B2N') && shortest.route.includes('C2N'));
 });
 
@@ -257,7 +257,7 @@ test('D7上辺の左半分が赤✕、右半分が青〇で、正解線は右〇
   assert.deepEqual(crossings.map(point => point[0]), [3.75]);
 });
 
-test('F5・F7と中央の壁追加・B2とC2の移動・縦壁の切り詰めを戻すと元の配置を再現する', () => {
+test('F5・F7と中央の壁追加・B2とC2の移動・縦壁の切り詰め・プール内部壁の削除を戻すと元の配置を再現する', () => {
   const restoredWalls = pattern01.walls.map(wall => {
     if (wall.from[1] === 1.5 && wall.to[1] === 1.5)
       return { from: [wall.from[0], 1], to: [wall.to[0], 1] };
@@ -266,7 +266,7 @@ test('F5・F7と中央の壁追加・B2とC2の移動・縦壁の切り詰めを
       return { from: [wall.from[0], 1], to: wall.to };
     return wall;
   });
-  const original = { ...pattern01, solutionVia: [], solutionCenters: undefined, walls: restoredWalls.filter(wall =>
+  const original = { ...pattern01, solutionVia: [], solutionCenters: undefined, walls: [...restoredWalls, { from: [2, 5], to: [3, 5] }].filter(wall =>
     [...wall.from, ...wall.to].every(Number.isInteger)) };
   const result = analyzeMaze(original);
   assert.equal(original.walls.length, 62);

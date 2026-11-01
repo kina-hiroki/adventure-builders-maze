@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 
-export type SceneResource = THREE.BufferGeometry | THREE.Material | THREE.Texture;
+export type SceneResource = THREE.BufferGeometry | THREE.Material | THREE.Texture | THREE.InstancedMesh;
 
 // 共有資源を重複解放せず、Line・Sprite・まだシーンに付けていない資源も回収する。
 export function disposeObjectTree(root: THREE.Object3D, extra: Iterable<SceneResource> = []) {
   const resources = new Set<SceneResource>(extra);
   root.traverse(object => {
+    if (object instanceof THREE.InstancedMesh) resources.add(object);
     if (object instanceof THREE.Mesh || object instanceof THREE.Line) resources.add(object.geometry);
     // SpriteのgeometryはThree.jsが共有しているため、この表示では所有しない。
     if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.Sprite) {
