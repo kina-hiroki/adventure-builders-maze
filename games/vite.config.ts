@@ -4,7 +4,7 @@ export default defineConfig({
   base: '/adventure-builders-maze/',
   build: {
     rolldownOptions: {
-      input: { maze: 'index.html', tunnel: 'tunnel.html', mountain: 'mountain.html' },
+      input: { maze: 'index.html', tunnel: 'tunnel.html', mountain: 'mountain.html', ballPool: 'ball-pool.html' },
       output: {
         chunkFileNames: chunk => chunk.isDynamicEntry ? 'assets/maze-view-[hash].js' : 'assets/[name]-[hash].js',
         codeSplitting: {

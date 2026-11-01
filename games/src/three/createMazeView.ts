@@ -9,6 +9,7 @@ import { attachPartTooltip } from './attachPartTooltip.ts';
 import { createScalePerson, scalePersonPosition } from './createScalePerson.ts';
 import { createMazeTunnels } from './createMazeTunnels.ts';
 import { createMazeMountains } from './createMazeMountains.ts';
+import { createMazeBallPools } from './createMazeBallPools.ts';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
@@ -56,6 +57,8 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       `${tunnel.name}。幅${tunnel.width}m・中央高さ${tunnel.height}m。`).join('');
     const mountainDescription = (plan.mountains ?? []).map(mountain =>
       `${mountain.name}。幅${mountain.width}m・長さ${Math.hypot(mountain.to[0] - mountain.from[0], mountain.to[1] - mountain.from[1]) * plan.cellSize}m・高さ${mountain.height}m。`).join('');
+    const ballPoolDescription = (plan.ballPools ?? []).map(pool =>
+      `${pool.name}。横${(pool.to[0] - pool.from[0]) * plan.cellSize}m・縦${(pool.to[1] - pool.from[1]) * plan.cellSize}m・ボールの深さ${pool.depth * 100}cm。`).join('');
     const quizDescription = plan.quizWalls.map(wall => {
       const edge = wall.edge === 'left' ? '左辺' : '上辺';
       const half = wall.span ? (wall.edge === 'left'
@@ -70,10 +73,12 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     let tunnelsTransparent = false;
     let mountainsVisible = true;
     let mountainsTransparent = false;
+    let ballPoolsVisible = true;
     function updateDescription() {
       renderer.domElement.setAttribute('aria-label', mazeDescription
         + (tunnelsVisible ? tunnelDescription + (tunnelsTransparent ? 'トンネルは半透明。' : '') : 'トンネルは非表示。')
         + (mountainsVisible ? mountainDescription + (mountainsTransparent ? '山越えゾーンは半透明。' : '') : '山越えゾーンは非表示。')
+        + (ballPoolsVisible ? ballPoolDescription : 'ボールプールは非表示。')
         + (windowsVisible ? windowDescription : '窓なし。')
         + (personVisible ? personDescription : '人物は非表示。')
         + '正面の壁に高さ1.5m・幅5mの白い板。'
@@ -231,6 +236,8 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     scene.add(tunnels.group);
     const mountains = createMazeMountains(plan);
     scene.add(mountains.group);
+    const ballPools = createMazeBallPools(plan);
+    scene.add(ballPools.group);
     const wallGrid = new THREE.LineSegments(
       new THREE.BufferGeometry().setFromPoints([...verticalMarkers.values()].flat()),
       new THREE.LineDashedMaterial({ color: '#745337', dashSize: 0.055, gapSize: 0.045,
@@ -381,6 +388,12 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
           size: `幅 ${specification.width} m × 長さ ${length} m × 高さ ${specification.height} m`,
           description: `${specification.name}。中央の頂点まで上り、反対側へ下って進みます。` };
       }),
+      ...ballPools.group.children.map((part, index) => {
+        const specification = plan.ballPools![index];
+        return { part, id: `ball-pool-tooltip-${index}`,
+          size: `横 ${(specification.to[0] - specification.from[0]) * plan.cellSize} m × 縦 ${(specification.to[1] - specification.from[1]) * plan.cellSize} m × ボールの深さ ${specification.depth * 100} cm`,
+          description: `${specification.name}。床から${specification.depth * 100}cmまでボールを入れたエリアを通って進みます。` };
+      }),
     ]);
 
     scope.defer(partTooltip.dispose);
@@ -500,6 +513,13 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       setMountainTransparent(value: boolean) {
         mountains.setTransparent(value);
         mountainsTransparent = value;
+        updateDescription();
+        render();
+      },
+      setBallPools(value: boolean) {
+        partTooltip.hide();
+        ballPools.group.visible = value;
+        ballPoolsVisible = value;
         updateDescription();
         render();
       },
