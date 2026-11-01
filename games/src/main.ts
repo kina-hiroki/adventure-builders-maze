@@ -2,7 +2,7 @@ import './style.css';
 import { pattern01 } from './maze/pattern01.ts';
 import { analyzeMaze } from './maze/analyzeMaze.ts';
 import { loadView } from './loadView.ts';
-import type { createMazeView, ViewMode } from './three/createMazeView.ts';
+import type { ViewMode } from './three/createMazeView.ts';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('描画先の #app が見つかりません。');
@@ -65,7 +65,8 @@ const zoom = element<HTMLInputElement>('zoom');
 const mode = element<HTMLSelectElement>('view-mode');
 const status = element<HTMLElement>('view-status');
 const stage = element<HTMLDivElement>('maze-stage');
-let view: ReturnType<typeof createMazeView> | undefined;
+const rotationValue = element<HTMLOutputElement>('rotation-value');
+const zoomValue = element<HTMLOutputElement>('zoom-value');
 
 function setBusy(busy: boolean) {
   stage.setAttribute('aria-busy', String(busy));
@@ -78,31 +79,30 @@ const loader = loadView({
   load: () => import('./three/createMazeView.ts'),
   create: ({ createMazeView }) => {
     stage.replaceChildren();
-    return createMazeView(stage, pattern01, (angle, percent) => {
+    return createMazeView(stage, pattern01, analysis.routePoints, (angle, percent) => {
       rotation.value = String(angle);
       zoom.value = String(percent);
-      element<HTMLOutputElement>('rotation-value').value = `${angle}°`;
-      element<HTMLOutputElement>('zoom-value').value = `${percent}%`;
+      rotationValue.value = `${angle}°`;
+      zoomValue.value = `${percent}%`;
     });
   },
   onReady: readyView => {
-    view = readyView;
     const bind = (id: string, event: string, callback: () => void) =>
       element(id).addEventListener(event, callback, { signal: events.signal });
-    bind('show-solution', 'change', () => view!.setSolution(element<HTMLInputElement>('show-solution').checked));
-    bind('view-mode', 'change', () => { view!.setView(mode.value as ViewMode); status.textContent = `${mode.selectedOptions[0].text}の視点に切り替えました。`; });
-    bind('rotation', 'input', () => view!.setAngle(Number(rotation.value)));
-    bind('zoom', 'input', () => view!.setZoom(Number(zoom.value)));
-    bind('transparent-walls', 'change', () => view!.setTransparent(element<HTMLInputElement>('transparent-walls').checked));
-    bind('wall-grid', 'change', () => view!.setWallGrid(element<HTMLInputElement>('wall-grid').checked));
-    bind('show-windows', 'change', () => view!.setWindows(element<HTMLInputElement>('show-windows').checked));
-    bind('show-person', 'change', () => view!.setPerson(element<HTMLInputElement>('show-person').checked));
-    bind('show-quiz', 'change', () => view!.setQuiz(element<HTMLInputElement>('show-quiz').checked));
-    bind('show-tunnels', 'change', () => view!.setTunnels(element<HTMLInputElement>('show-tunnels').checked));
-    bind('transparent-tunnels', 'change', () => view!.setTunnelTransparent(element<HTMLInputElement>('transparent-tunnels').checked));
-    bind('show-mountains', 'change', () => view!.setMountains(element<HTMLInputElement>('show-mountains').checked));
-    bind('transparent-mountains', 'change', () => view!.setMountainTransparent(element<HTMLInputElement>('transparent-mountains').checked));
-    bind('reset-view', 'click', () => { mode.value = 'angled'; view!.reset(); status.textContent = '斜めからの全体表示に戻しました。'; });
+    const booleanSettings = {
+      'show-solution': 'setSolution', 'transparent-walls': 'setTransparent',
+      'wall-grid': 'setWallGrid', 'show-windows': 'setWindows', 'show-person': 'setPerson',
+      'show-quiz': 'setQuiz', 'show-tunnels': 'setTunnels', 'transparent-tunnels': 'setTunnelTransparent',
+      'show-mountains': 'setMountains', 'transparent-mountains': 'setMountainTransparent',
+    } as const;
+    for (const [id, setter] of Object.entries(booleanSettings)) {
+      const input = element<HTMLInputElement>(id);
+      input.addEventListener('change', () => readyView[setter](input.checked), { signal: events.signal });
+    }
+    bind('view-mode', 'change', () => { readyView.setView(mode.value as ViewMode); status.textContent = `${mode.selectedOptions[0].text}の視点に切り替えました。`; });
+    bind('rotation', 'input', () => readyView.setAngle(Number(rotation.value)));
+    bind('zoom', 'input', () => readyView.setZoom(Number(zoom.value)));
+    bind('reset-view', 'click', () => { mode.value = 'angled'; readyView.reset(); status.textContent = '斜めからの全体表示に戻しました。'; });
     setBusy(false);
     status.textContent = '斜めから全体を表示しています。';
   },
@@ -119,6 +119,11 @@ const loader = loadView({
     console.error(phase === 'load' ? '3Dファイルの読み込みに失敗しました。' : '迷路の3D表示を開始できませんでした。', error);
   },
 });
+
+window.addEventListener('pagehide', event => {
+  // 戻る操作で復元される画面は維持し、通常の離脱時はGPU資源を解放する。
+  if (!event.persisted) loader.dispose();
+}, { signal: events.signal });
 
 if (import.meta.hot) {
   import.meta.hot.accept();

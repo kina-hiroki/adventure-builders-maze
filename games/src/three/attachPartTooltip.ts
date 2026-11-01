@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createFrameScheduler } from '../createFrameScheduler.ts';
 
 interface TooltipPart {
   part: THREE.Object3D;
@@ -24,8 +25,29 @@ export function attachPartTooltip(container: HTMLElement, canvas: HTMLCanvasElem
   const presses = new Map<number, { x: number; y: number; moved: boolean }>();
   const originalDescription = canvas.getAttribute('aria-describedby') ?? '';
   let keyboardIndex = -1;
+  const targets = new Map(parts.map(target => [target.part, target]));
+  const meshes: THREE.Mesh[] = [];
+  const visibleMeshes: THREE.Mesh[] = [];
+  let hover: { x: number; y: number } | undefined;
+  const hovering = createFrameScheduler(() => {
+    const latest = hover;
+    hover = undefined;
+    if (latest) inspect(latest.x, latest.y);
+  });
+  function refresh() {
+    meshes.length = 0;
+    scene.traverse(object => { if (object instanceof THREE.Mesh) meshes.push(object); });
+  }
+  function isVisible(part: THREE.Object3D) {
+    for (let object: THREE.Object3D | null = part; object; object = object.parent)
+      if (!object.visible) return false;
+    return true;
+  }
+  refresh();
 
   function hide() {
+    hover = undefined;
+    hovering.cancel();
     tooltip.hidden = true;
     canvas.style.cursor = '';
     canvas.setAttribute('aria-describedby', originalDescription);
@@ -52,16 +74,16 @@ export function attachPartTooltip(container: HTMLElement, canvas: HTMLCanvasElem
     if (!bounds.width || !bounds.height) return undefined;
     pointer.set((clientX - bounds.left) / bounds.width * 2 - 1,
       -(clientY - bounds.top) / bounds.height * 2 + 1);
-    scene.updateMatrixWorld(true);
-    camera.updateMatrixWorld(true);
+    scene.updateMatrixWorld();
+    camera.updateMatrixWorld();
     raycaster.setFromCamera(pointer, camera);
     // 裏側から壁越しに反応させず、実際に見えている一番手前の面を調べる。
-    const meshes: THREE.Mesh[] = [];
-    scene.traverseVisible(object => { if (object instanceof THREE.Mesh) meshes.push(object); });
-    let hit: THREE.Object3D | null = raycaster.intersectObjects(meshes, false)[0]?.object ?? null;
+    visibleMeshes.length = 0;
+    for (const mesh of meshes) if (isVisible(mesh)) visibleMeshes.push(mesh);
+    let hit: THREE.Object3D | null = raycaster.intersectObjects(visibleMeshes, false)[0]?.object ?? null;
     // 壁に貼った〇✕の記号に当たった場合も、親のクイズ壁を対象にする。
     while (hit) {
-      const target = parts.find(target => target.part === hit);
+      const target = targets.get(hit);
       if (target) return target;
       hit = hit.parent;
     }
@@ -83,7 +105,10 @@ export function attachPartTooltip(container: HTMLElement, canvas: HTMLCanvasElem
       if (Math.hypot(event.clientX - press.x, event.clientY - press.y) > 8) press.moved = true;
       return;
     }
-    if (event.pointerType === 'mouse' && !event.buttons && !presses.size) inspect(event.clientX, event.clientY);
+    if (event.pointerType === 'mouse' && !event.buttons && !presses.size) {
+      hover = { x: event.clientX, y: event.clientY };
+      hovering.request();
+    }
   }, { signal: events.signal });
   canvas.addEventListener('pointerup', event => {
     const press = presses.get(event.pointerId);
@@ -94,14 +119,12 @@ export function attachPartTooltip(container: HTMLElement, canvas: HTMLCanvasElem
   canvas.addEventListener('pointercancel', event => { presses.delete(event.pointerId); hide(); }, { signal: events.signal });
   canvas.addEventListener('pointerleave', event => { if (event.pointerType === 'mouse') hide(); }, { signal: events.signal });
   canvas.addEventListener('keydown', event => {
+    hover = undefined;
+    hovering.cancel();
     if (event.key === 'Escape') hide();
     if (event.key === 'Enter') {
       event.preventDefault();
-      const visibleParts = parts.filter(({ part }) => {
-        for (let object: THREE.Object3D | null = part; object; object = object.parent)
-          if (!object.visible) return false;
-        return true;
-      });
+      const visibleParts = parts.filter(({ part }) => isVisible(part));
       if (!visibleParts.length) { hide(); return; }
       keyboardIndex = (keyboardIndex + 1) % visibleParts.length;
       const target = visibleParts[keyboardIndex];
@@ -116,6 +139,7 @@ export function attachPartTooltip(container: HTMLElement, canvas: HTMLCanvasElem
     { signal: events.signal, capture: true });
   return {
     hide,
-    dispose() { events.abort(); presses.clear(); hide(); tooltip.remove(); },
+    refresh,
+    dispose() { hovering.dispose(); events.abort(); presses.clear(); hide(); tooltip.remove(); },
   };
 }

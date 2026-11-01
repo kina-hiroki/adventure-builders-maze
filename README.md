@@ -164,16 +164,20 @@ GitHub Pagesの公開設定が完了した後のURLは `https://kina-hiroki.gith
 ## 自動公開ワークフロー
 
 [deploy.yml](.github/workflows/deploy.yml) に、GitHub Actionsの自動公開処理を定義しています。
-`main` へのプッシュ、またはActions画面からの手動操作で実行します。
+`main` 向けのプルリクエスト、`main` へのプッシュ、またはActions画面からの手動操作で実行します。
 
 処理の順番は次のとおりです。
 
 1. Ubuntu上にNode.js 24を用意し、`games/package-lock.json` に基づいてnpmのキャッシュを使用
 2. `games/` で `npm ci` を実行して依存ライブラリを導入
-3. `npm test` で単体テストを実行
-4. `npm run build` で型チェックとビルドを実行
-5. `games/dist/` を公開用の成果物としてアップロード
-6. 公開する実行では、`build` 成功後に `deploy` でGitHub Pagesへ公開
+3. `npm audit --audit-level=high` で開発用・任意の依存関係も監査し、高・重大の脆弱性、または照合失敗で処理を停止
+4. `npm test` で単体テストを実行
+5. `npm run build` で型チェックとビルドを実行
+6. プルリクエスト以外では `games/dist/` を公開用の成果物としてアップロード
+7. 公開する実行では、`build` 成功後に `deploy` でGitHub Pagesへ公開
+
+プルリクエストでは監査・テスト・ビルドまでを実行し、成果物のアップロードと公開は行いません。
+ローカルでも `games/` で `npm audit --audit-level=high` を実行できます。依存関係の自動修正は行いません。
 
 手動実行時に「GitHub Pagesへ公開する」のチェックを外すと、公開せずにテスト・ビルドと成果物の作成だけを確認できます。
 手動で公開する場合も、ブランチは `main` を選択します。
@@ -209,6 +213,8 @@ GitHub Pagesの公開設定が完了した後のURLは `https://kina-hiroki.gith
    ├─ src/
    │  ├─ main.ts             # 画面・表示設定・3Dの非同期起動
    │  ├─ loadView.ts         # 非同期読み込み・失敗通知・終了処理
+   │  ├─ createCleanupScope.ts # 初期化失敗・終了時の後始末
+   │  ├─ createFrameScheduler.ts # 同じフレームの更新要求の集約
    │  ├─ style.css           # レイアウト・見た目
    │  ├─ maze/
    │  │  ├─ types.ts         # 迷路データの型
@@ -216,10 +222,22 @@ GitHub Pagesの公開設定が完了した後のURLは `https://kina-hiroki.gith
    │  │  ├─ outerWallWindows.ts # 外周窓の形状の割り当て
    │  │  ├─ topology.ts      # 中央壁による通路分割・隣接と経路の座標
    │  │  └─ analyzeMaze.ts   # 通路・経路・整合性の解析
+   │  ├─ samples/
+   │  │  ├─ mountSample.ts   # サンプル共通の画面・カメラ・照明・終了処理
+   │  │  ├─ mountain.ts      # 山越えサンプルのモデル・寸法
+   │  │  ├─ tunnel.ts        # トンネルサンプルのモデル・設定
+   │  │  └─ tunnel.css       # サンプル共通の見た目
    │  └─ three/
    │     ├─ animateSolutionRoute.ts # 正解ルートのアニメーションと停止制御
    │     ├─ attachPartTooltip.ts # 部品の説明・マウスとタップの判定
    │     ├─ createMazeView.ts # 3D描画・カメラ・リソースの解放
+   │     ├─ disposeObjectTree.ts # 共有形状・マテリアル・テクスチャの回収
+   │     ├─ createTransparencyControl.ts # 透かし設定の保存・復元
+   │     ├─ createQuizSymbolCache.ts # 色・記号ごとのテクスチャ共有
+   │     ├─ createCardboardTunnel.ts # 単体トンネルの形状
+   │     ├─ createCardboardMountain.ts # 単体山越えパーツの形状
+   │     ├─ createMazeTunnels.ts # 迷路内のトンネル配置
+   │     ├─ createMazeMountains.ts # 迷路内の山越えパーツ配置
    │     ├─ createScalePerson.ts # 身長130cmの人物と配置
    │     └─ createWindowWallGeometry.ts # 窓が貫通した壁の形状
    ├─ tests/
@@ -228,6 +246,11 @@ GitHub Pagesの公開設定が完了した後のURLは `https://kina-hiroki.gith
    │  ├─ person.test.mjs
    │  ├─ tooltip.test.mjs
    │  ├─ solution-animation.test.mjs
+   │  ├─ render-resources.test.mjs
+   │  ├─ tunnel.test.mjs
+   │  ├─ mountain.test.mjs
+   │  ├─ maze-mountains.test.mjs
+   │  ├─ helpers/frameClock.mjs
    │  └─ loading.test.mjs
    └─ public/
       └─ reference/
@@ -235,6 +258,9 @@ GitHub Pagesの公開設定が完了した後のURLは `https://kina-hiroki.gith
 ```
 
 迷路のデータ・解析処理とThree.jsによる描画処理を分けています。
+経路座標は解析時の計算結果を描画へ渡します。同寸法の箱・平面と同じ色・記号のクイズ画像は表示内で共有します。
+描画とホバー判定は1フレーム内の要求をまとめます。部品を後から追加・削除した場合は、説明表示の `refresh()` で交差判定対象を更新します。
+初期化途中の失敗でも、通常終了と同じ後始末を実行します。共有資源は一度だけ解放し、Three.jsが共有するSpriteの形状は解放対象に含めません。
 `node_modules/` と `dist/` は自動生成されるためGit管理の対象外です。
 
 ## 現在の制限
