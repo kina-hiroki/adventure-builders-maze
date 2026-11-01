@@ -1,3 +1,8 @@
+import { withCleanup } from '../createCleanupScope.ts';
+import { createFrameScheduler } from '../createFrameScheduler.ts';
+import { disposeObjectTree } from './disposeObjectTree.ts';
+import type { SceneResource } from './disposeObjectTree.ts';
+import { createQuizSymbolCache } from './createQuizSymbolCache.ts';
 import * as THREE from 'three';
 import { animateSolutionRoute } from './animateSolutionRoute.ts';
 import { attachPartTooltip } from './attachPartTooltip.ts';
@@ -9,532 +14,511 @@ import { Line2 } from 'three/addons/lines/Line2.js';
 import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 import { cellPoint, wallKey } from '../maze/analyzeMaze.ts';
-import { createRoutePoints } from '../maze/topology.ts';
 import { createOuterWallWindows } from '../maze/outerWallWindows.ts';
 import type { WindowShape } from '../maze/outerWallWindows.ts';
-import type { MazePlan } from '../maze/types.ts';
+import type { MazePlan, Point } from '../maze/types.ts';
 import { createWindowOutlineGeometry, createWindowWallGeometry } from './createWindowWallGeometry.ts';
 
 export type ViewMode = 'angled' | 'top' | 'side' | 'front' | 'right' | 'back' | 'left';
 
 export function createMazeView(container: HTMLElement, plan: MazePlan,
-  onChange: (angle: number, zoom: number) => void) {
-  const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#f4f7fa');
-  const camera = new THREE.OrthographicCamera(-6, 6, 6, -6, 0.1, 150);
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.domElement.setAttribute('role', 'img');
-  const mazeDescription = `${plan.name}、${plan.columns * plan.cellSize}m×${plan.rows * plan.cellSize}m、壁高${plan.wallHeight}mの迷路。入口${plan.entry}、出口${plan.exit}。`;
-  const windowDescription = '正面を除く外壁に丸・正方形・ひし形の窓。';
-  const personDescription = '入口の左横に身長130cmの人物。';
-  const tunnelDescription = (plan.tunnels ?? []).map(tunnel =>
-    `${tunnel.name}。幅${tunnel.width}m・中央高さ${tunnel.height}m。`).join('');
-  const mountainDescription = (plan.mountains ?? []).map(mountain =>
-    `${mountain.name}。幅${mountain.width}m・長さ${Math.hypot(mountain.to[0] - mountain.from[0], mountain.to[1] - mountain.from[1]) * plan.cellSize}m・高さ${mountain.height}m。`).join('');
-  const quizDescription = plan.quizWalls.map(wall => {
-    const edge = wall.edge === 'left' ? '左辺' : '上辺';
-    const half = wall.span ? (wall.edge === 'left'
-      ? (wall.span[0] === 0 ? '上半分' : '下半分')
-      : (wall.span[0] === 0 ? '左半分' : '右半分')) : '';
-    return `${wall.cell}の${edge}${half}に${wall.symbol === '✕' ? '赤い✕（行き止まり）' : '青い〇（正解）'}の半透明の壁。`;
-  }).join('');
-  let windowsVisible = true;
-  let personVisible = true;
-  let quizVisible = true;
-  let tunnelsVisible = true;
-  let tunnelsTransparent = false;
-  let mountainsVisible = true;
-  let mountainsTransparent = false;
-  function updateDescription() {
-    renderer.domElement.setAttribute('aria-label', mazeDescription
-      + (tunnelsVisible ? tunnelDescription + (tunnelsTransparent ? 'トンネルは半透明。' : '') : 'トンネルは非表示。')
-      + (mountainsVisible ? mountainDescription + (mountainsTransparent ? '山越えゾーンは半透明。' : '') : '山越えゾーンは非表示。')
-      + (windowsVisible ? windowDescription : '窓なし。')
-      + (personVisible ? personDescription : '人物は非表示。')
-      + '正面の壁に高さ1.5m・幅5mの白い板。'
-      + (quizVisible ? quizDescription : '○×クイズは非表示。'));
-  }
-  updateDescription();
-  renderer.domElement.setAttribute('tabindex', '0');
-  renderer.domElement.setAttribute('aria-describedby', 'navigation-help');
-  container.appendChild(renderer.domElement);
+  solutionPoints: readonly Point[], onChange: (angle: number, zoom: number) => void) {
+  return withCleanup(scope => {
+    const owned = new Set<SceneResource>();
+    const boxes = new Map<string, THREE.BoxGeometry>();
+    const planes = new Map<string, THREE.PlaneGeometry>();
+    const symbolMaterials = createQuizSymbolCache();
+    function box(width: number, height: number, depth: number) {
+      const key = [width, height, depth].join(',');
+      if (!boxes.has(key)) { const geometry = new THREE.BoxGeometry(width, height, depth); boxes.set(key, geometry); owned.add(geometry); }
+      return boxes.get(key)!;
+    }
+    function plane(width: number, height: number) {
+      const key = [width, height].join(',');
+      if (!planes.has(key)) { const geometry = new THREE.PlaneGeometry(width, height); planes.set(key, geometry); owned.add(geometry); }
+      return planes.get(key)!;
+    }
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#f4f7fa');
+    const camera = new THREE.OrthographicCamera(-6, 6, 6, -6, 0.1, 150);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    scope.defer(() => { try { renderer.dispose(); } finally { renderer.domElement.remove(); } });
+    scope.defer(() => disposeObjectTree(scene, [...owned, ...symbolMaterials.values()]));
+    const rendering = createFrameScheduler(() => renderer.render(scene, camera));
+    scope.defer(rendering.dispose);
+    const render = rendering.request;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.domElement.setAttribute('role', 'img');
+    const mazeDescription = `${plan.name}、${plan.columns * plan.cellSize}m×${plan.rows * plan.cellSize}m、壁高${plan.wallHeight}mの迷路。入口${plan.entry}、出口${plan.exit}。`;
+    const windowDescription = '正面を除く外壁に丸・正方形・ひし形の窓。';
+    const personDescription = '入口の左横に身長130cmの人物。';
+    const tunnelDescription = (plan.tunnels ?? []).map(tunnel =>
+      `${tunnel.name}。幅${tunnel.width}m・中央高さ${tunnel.height}m。`).join('');
+    const mountainDescription = (plan.mountains ?? []).map(mountain =>
+      `${mountain.name}。幅${mountain.width}m・長さ${Math.hypot(mountain.to[0] - mountain.from[0], mountain.to[1] - mountain.from[1]) * plan.cellSize}m・高さ${mountain.height}m。`).join('');
+    const quizDescription = plan.quizWalls.map(wall => {
+      const edge = wall.edge === 'left' ? '左辺' : '上辺';
+      const half = wall.span ? (wall.edge === 'left'
+        ? (wall.span[0] === 0 ? '上半分' : '下半分')
+        : (wall.span[0] === 0 ? '左半分' : '右半分')) : '';
+      return `${wall.cell}の${edge}${half}に${wall.symbol === '✕' ? '赤い✕（行き止まり）' : '青い〇（正解）'}の半透明の壁。`;
+    }).join('');
+    let windowsVisible = true;
+    let personVisible = true;
+    let quizVisible = true;
+    let tunnelsVisible = true;
+    let tunnelsTransparent = false;
+    let mountainsVisible = true;
+    let mountainsTransparent = false;
+    function updateDescription() {
+      renderer.domElement.setAttribute('aria-label', mazeDescription
+        + (tunnelsVisible ? tunnelDescription + (tunnelsTransparent ? 'トンネルは半透明。' : '') : 'トンネルは非表示。')
+        + (mountainsVisible ? mountainDescription + (mountainsTransparent ? '山越えゾーンは半透明。' : '') : '山越えゾーンは非表示。')
+        + (windowsVisible ? windowDescription : '窓なし。')
+        + (personVisible ? personDescription : '人物は非表示。')
+        + '正面の壁に高さ1.5m・幅5mの白い板。'
+        + (quizVisible ? quizDescription : '○×クイズは非表示。'));
+    }
+    updateDescription();
+    renderer.domElement.setAttribute('tabindex', '0');
+    renderer.domElement.setAttribute('aria-describedby', 'navigation-help');
+    container.appendChild(renderer.domElement);
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xb7a38a, 1.8));
-  const light = new THREE.DirectionalLight(0xffffff, 1.8);
-  light.position.set(-5, 13, 8);
-  scene.add(light);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xb7a38a, 1.8));
+    const light = new THREE.DirectionalLight(0xffffff, 1.8);
+    light.position.set(-5, 13, 8);
+    scene.add(light);
 
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 0.4, 0);
-  controls.minPolarAngle = 0.001;
-  controls.maxPolarAngle = Math.PI / 2;
-  controls.minZoom = 1;
-  controls.maxZoom = 3;
-  controls.screenSpacePanning = true;
-  controls.listenToKeyEvents(renderer.domElement);
-  const textures: THREE.Texture[] = [];
-  const width = plan.columns * plan.cellSize;
-  const depth = plan.rows * plan.cellSize;
-  const h = plan.wallHeight;
-  const thickness = 0.045; // 元図に壁厚の指定がないため、表示用の厚さ。
-  const world = (x: number, y: number, z: number) =>
-    new THREE.Vector3(x * plan.cellSize - width / 2, y, z * plan.cellSize - depth / 2);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    scope.defer(() => controls.dispose());
+    controls.target.set(0, 0.4, 0);
+    controls.minPolarAngle = 0.001;
+    controls.maxPolarAngle = Math.PI / 2;
+    controls.minZoom = 1;
+    controls.maxZoom = 3;
+    controls.screenSpacePanning = true;
+    controls.listenToKeyEvents(renderer.domElement);
+    const width = plan.columns * plan.cellSize;
+    const depth = plan.rows * plan.cellSize;
+    const h = plan.wallHeight;
+    const thickness = 0.045; // 元図に壁厚の指定がないため、表示用の厚さ。
+    const world = (x: number, y: number, z: number) =>
+      new THREE.Vector3(x * plan.cellSize - width / 2, y, z * plan.cellSize - depth / 2);
 
-  const floorMaterial = new THREE.MeshStandardMaterial({ color: '#e9e4d9', roughness: 1 });
-  const floor = new THREE.Mesh(new THREE.BoxGeometry(width + 0.2, 0.12, depth + 0.2), floorMaterial);
-  floor.position.y = -0.065;
-  scene.add(floor);
+    const floorMaterial = new THREE.MeshStandardMaterial({ color: '#e9e4d9', roughness: 1 });
+    const floor = new THREE.Mesh(box(width + 0.2, 0.12, depth + 0.2), floorMaterial);
+    floor.position.y = -0.065;
+    scene.add(floor);
 
-  const gridPoints: THREE.Vector3[] = [];
-  for (let i = 0; i <= plan.columns; i++) gridPoints.push(world(i, 0.004, 0), world(i, 0.004, plan.rows));
-  for (let i = 0; i <= plan.rows; i++) gridPoints.push(world(0, 0.004, i), world(plan.columns, 0.004, i));
-  const grid = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gridPoints),
-    new THREE.LineBasicMaterial({ color: '#c9c3b6', transparent: true, opacity: 0.65 }));
-  scene.add(grid);
+    const gridPoints: THREE.Vector3[] = [];
+    for (let i = 0; i <= plan.columns; i++) gridPoints.push(world(i, 0.004, 0), world(i, 0.004, plan.rows));
+    for (let i = 0; i <= plan.rows; i++) gridPoints.push(world(0, 0.004, i), world(plan.columns, 0.004, i));
+    const grid = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gridPoints),
+      new THREE.LineBasicMaterial({ color: '#c9c3b6', transparent: true, opacity: 0.65 }));
+    scene.add(grid);
 
-  // 1mの実線を残し、各マスの中央に0.5mマス用の補助点線を重ねる。
-  const halfMetrePoints: THREE.Vector3[] = [];
-  for (let x = 0.5; x < plan.columns; x++) {
-    halfMetrePoints.push(world(x, 0.004, 0), world(x, 0.004, plan.rows));
-  }
-  for (let z = 0.5; z < plan.rows; z++) {
-    halfMetrePoints.push(world(0, 0.004, z), world(plan.columns, 0.004, z));
-  }
-  const halfMetreGrid = new THREE.LineSegments(
-    new THREE.BufferGeometry().setFromPoints(halfMetrePoints),
-    new THREE.LineDashedMaterial({ color: '#a89f90', dashSize: 0.035, gapSize: 0.045,
-      transparent: true, opacity: 0.8 }));
-  halfMetreGrid.name = 'half-metre-floor-grid';
-  halfMetreGrid.computeLineDistances();
-  scene.add(halfMetreGrid);
+    // 1mの実線を残し、各マスの中央に0.5mマス用の補助点線を重ねる。
+    const halfMetrePoints: THREE.Vector3[] = [];
+    for (let x = 0.5; x < plan.columns; x++) {
+      halfMetrePoints.push(world(x, 0.004, 0), world(x, 0.004, plan.rows));
+    }
+    for (let z = 0.5; z < plan.rows; z++) {
+      halfMetrePoints.push(world(0, 0.004, z), world(plan.columns, 0.004, z));
+    }
+    const halfMetreGrid = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints(halfMetrePoints),
+      new THREE.LineDashedMaterial({ color: '#a89f90', dashSize: 0.035, gapSize: 0.045,
+        transparent: true, opacity: 0.8 }));
+    halfMetreGrid.name = 'half-metre-floor-grid';
+    halfMetreGrid.computeLineDistances();
+    scene.add(halfMetreGrid);
 
-  const wallMaterials = [
-    new THREE.MeshStandardMaterial({ color: '#d1aa74', roughness: 0.95 }),
-    new THREE.MeshStandardMaterial({ color: '#bd8d52', roughness: 0.95 }),
-    new THREE.MeshStandardMaterial({ color: '#9a7448', roughness: 0.95 }),
-  ];
-  const [sideMaterial, addedMaterial, topMaterial] = wallMaterials;
-  const walls = new THREE.Group();
-  walls.name = 'maze-walls';
-  const windowedWalls = new THREE.Group();
-  windowedWalls.name = 'windowed-outer-walls';
-  const solidWindowWalls = new THREE.Group();
-  solidWindowWalls.name = 'solid-outer-walls';
-  solidWindowWalls.visible = false;
-  walls.add(windowedWalls, solidWindowWalls);
-  const outerWindows = createOuterWallWindows(plan);
-  const windowGeometries = new Map<WindowShape, THREE.ExtrudeGeometry>();
-  const windowOutlines = new Map<WindowShape, THREE.BufferGeometry>();
-  const windowEdgeMaterial = new THREE.LineBasicMaterial({ color: '#78512f', depthWrite: false });
-  const verticalMarkers = new Map<string, THREE.Vector3[]>();
-  for (const wall of plan.walls) {
-    const vertical = wall.from[0] === wall.to[0];
-    const length = Math.hypot(wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]) * plan.cellSize;
-    const added = vertical && wall.from[0] === 6 && (wall.from[1] === 1 || wall.from[1] === 2);
-    const material = added ? addedMaterial : sideMaterial;
-    const windowShape = outerWindows.get(wallKey(wall));
-    let geometry: THREE.BufferGeometry;
-    if (windowShape) {
-      let windowGeometry = windowGeometries.get(windowShape);
-      if (!windowGeometry) {
-        windowGeometry = createWindowWallGeometry(plan.cellSize, h, thickness, windowShape);
-        windowGeometries.set(windowShape, windowGeometry);
+    const wallMaterials = [
+      new THREE.MeshStandardMaterial({ color: '#d1aa74', roughness: 0.95 }),
+      new THREE.MeshStandardMaterial({ color: '#bd8d52', roughness: 0.95 }),
+      new THREE.MeshStandardMaterial({ color: '#9a7448', roughness: 0.95 }),
+    ];
+    const [sideMaterial, addedMaterial, topMaterial] = wallMaterials;
+    const walls = new THREE.Group();
+    walls.name = 'maze-walls';
+    scene.add(walls);
+    const windowedWalls = new THREE.Group();
+    windowedWalls.name = 'windowed-outer-walls';
+    const solidWindowWalls = new THREE.Group();
+    solidWindowWalls.name = 'solid-outer-walls';
+    solidWindowWalls.visible = false;
+    walls.add(windowedWalls, solidWindowWalls);
+    const outerWindows = createOuterWallWindows(plan);
+    const windowGeometries = new Map<WindowShape, THREE.ExtrudeGeometry>();
+    const windowOutlines = new Map<WindowShape, THREE.BufferGeometry>();
+    const windowEdgeMaterial = new THREE.LineBasicMaterial({ color: '#78512f', depthWrite: false });
+    const verticalMarkers = new Map<string, THREE.Vector3[]>();
+    for (const wall of plan.walls) {
+      const vertical = wall.from[0] === wall.to[0];
+      const length = Math.hypot(wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]) * plan.cellSize;
+      const added = vertical && wall.from[0] === 6 && (wall.from[1] === 1 || wall.from[1] === 2);
+      const material = added ? addedMaterial : sideMaterial;
+      const windowShape = outerWindows.get(wallKey(wall));
+      let geometry: THREE.BufferGeometry;
+      if (windowShape) {
+        let windowGeometry = windowGeometries.get(windowShape);
+        if (!windowGeometry) {
+          windowGeometry = createWindowWallGeometry(plan.cellSize, h, thickness, windowShape);
+          windowGeometries.set(windowShape, windowGeometry);
+        }
+        geometry = windowGeometry;
+      } else {
+        geometry = box(vertical ? thickness : length, h,
+          vertical ? length : thickness);
       }
-      geometry = windowGeometry;
-    } else {
-      geometry = new THREE.BoxGeometry(vertical ? thickness : length, h,
-        vertical ? length : thickness);
-    }
-    const mesh = new THREE.Mesh(geometry, windowShape ? [material, topMaterial]
-      : [material, material, topMaterial, material, material, material]);
-    if (windowShape) {
-      let outline = windowOutlines.get(windowShape);
-      if (!outline) {
-        outline = createWindowOutlineGeometry(h, thickness, windowShape);
-        windowOutlines.set(windowShape, outline);
+      const mesh = new THREE.Mesh(geometry, windowShape ? [material, topMaterial]
+        : [material, material, topMaterial, material, material, material]);
+      if (windowShape) {
+        let outline = windowOutlines.get(windowShape);
+        if (!outline) {
+          outline = createWindowOutlineGeometry(h, thickness, windowShape);
+          windowOutlines.set(windowShape, outline);
+        }
+        mesh.add(new THREE.LineSegments(outline, windowEdgeMaterial));
       }
-      mesh.add(new THREE.LineSegments(outline, windowEdgeMaterial));
-    }
-    if (windowShape && vertical) mesh.rotation.y = Math.PI / 2;
-    mesh.position.copy(world((wall.from[0] + wall.to[0]) / 2, h / 2,
-      (wall.from[1] + wall.to[1]) / 2));
-    mesh.name = windowShape ? `outer-wall-${windowShape}-window` : added ? 'added-wall' : 'wall';
-    if (windowShape) {
-      windowedWalls.add(mesh);
-      const solidMesh = new THREE.Mesh(new THREE.BoxGeometry(plan.cellSize, h, thickness),
-        [material, material, topMaterial, material, material, material]);
-      solidMesh.rotation.copy(mesh.rotation);
-      solidMesh.position.copy(mesh.position);
-      solidMesh.name = 'closed-outer-wall';
-      solidWindowWalls.add(solidMesh);
-    } else {
-      walls.add(mesh);
-    }
-    for (const [x, z] of [wall.from, wall.to]) {
-      for (const sign of [-1, 1]) {
-        const offset = sign * (thickness / 2 + 0.003);
-        const bottom = world(x, 0.015, z);
-        if (vertical) bottom.x += offset;
-        else bottom.z += offset;
-        verticalMarkers.set(bottom.toArray().join(','), [bottom, bottom.clone().setY(h - 0.01)]);
+      if (windowShape && vertical) mesh.rotation.y = Math.PI / 2;
+      mesh.position.copy(world((wall.from[0] + wall.to[0]) / 2, h / 2,
+        (wall.from[1] + wall.to[1]) / 2));
+      mesh.name = windowShape ? `outer-wall-${windowShape}-window` : added ? 'added-wall' : 'wall';
+      if (windowShape) {
+        windowedWalls.add(mesh);
+        const solidMesh = new THREE.Mesh(box(plan.cellSize, h, thickness),
+          [material, material, topMaterial, material, material, material]);
+        solidMesh.rotation.copy(mesh.rotation);
+        solidMesh.position.copy(mesh.position);
+        solidMesh.name = 'closed-outer-wall';
+        solidWindowWalls.add(solidMesh);
+      } else {
+        walls.add(mesh);
+      }
+      for (const [x, z] of [wall.from, wall.to]) {
+        for (const sign of [-1, 1]) {
+          const offset = sign * (thickness / 2 + 0.003);
+          const bottom = world(x, 0.015, z);
+          if (vertical) bottom.x += offset;
+          else bottom.z += offset;
+          verticalMarkers.set(bottom.toArray().join(','), [bottom, bottom.clone().setY(h - 0.01)]);
+        }
       }
     }
-  }
-  // 正面のB7〜F7に密着させ、両端の入口A7・出口G7を空けておく。
-  const frontBoardThickness = 0.02; // 板厚の指定がないため、表示用に2cmとする。
-  const frontBoardMaterial = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 });
-  wallMaterials.push(frontBoardMaterial);
-  const frontBoard = new THREE.Mesh(new THREE.BoxGeometry(5, 1.5, frontBoardThickness), frontBoardMaterial);
-  frontBoard.name = 'front-art-board';
-  frontBoard.position.set(0, 0.75, depth / 2 + thickness / 2 + frontBoardThickness / 2);
-  const frontBoardGuideMaterial = new THREE.LineDashedMaterial({ color: '#000000',
-    dashSize: 0.07, gapSize: 0.05, transparent: true, depthWrite: false });
-  const frontBoardGuidePoints: THREE.Vector3[] = [];
-  for (let x = 1; x < 5; x++) {
-    const z = frontBoardThickness / 2 + 0.002;
-    frontBoardGuidePoints.push(new THREE.Vector3(x - 2.5, -0.75, z),
-      new THREE.Vector3(x - 2.5, 0.75, z));
-  }
-  const frontBoardGuides = new THREE.LineSegments(
-    new THREE.BufferGeometry().setFromPoints(frontBoardGuidePoints), frontBoardGuideMaterial);
-  frontBoardGuides.name = 'front-board-one-metre-guides';
-  frontBoardGuides.computeLineDistances();
-  frontBoard.add(frontBoardGuides);
-  walls.add(frontBoard);
-  scene.add(walls);
-  const tunnels = createMazeTunnels(plan, thickness);
-  scene.add(tunnels.group);
-  const mountains = createMazeMountains(plan);
-  scene.add(mountains.group);
-  const wallGrid = new THREE.LineSegments(
-    new THREE.BufferGeometry().setFromPoints([...verticalMarkers.values()].flat()),
-    new THREE.LineDashedMaterial({ color: '#745337', dashSize: 0.055, gapSize: 0.045,
-      transparent: true, opacity: 0.8, depthTest: false }));
-  wallGrid.computeLineDistances();
-  wallGrid.renderOrder = 3;
-  wallGrid.visible = false;
-  scene.add(wallGrid);
-
-  function label(text: string, color: string, size = 0.8, flat = false) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 160;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('文字の描画領域を作成できません。');
-    context.font = '600 78px system-ui, "Meiryo", sans-serif';
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.fillStyle = color;
-    context.fillText(text, 256, 80);
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    textures.push(texture);
-    if (flat) {
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size * 160 / 512),
-        new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false }));
-      mesh.rotation.x = -Math.PI / 2;
-      return mesh;
+    // 正面のB7〜F7に密着させ、両端の入口A7・出口G7を空けておく。
+    const frontBoardThickness = 0.02; // 板厚の指定がないため、表示用に2cmとする。
+    const frontBoardMaterial = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1 });
+    wallMaterials.push(frontBoardMaterial);
+    const frontBoard = new THREE.Mesh(box(5, 1.5, frontBoardThickness), frontBoardMaterial);
+    frontBoard.name = 'front-art-board';
+    frontBoard.position.set(0, 0.75, depth / 2 + thickness / 2 + frontBoardThickness / 2);
+    const frontBoardGuideMaterial = new THREE.LineDashedMaterial({ color: '#000000',
+      dashSize: 0.07, gapSize: 0.05, transparent: true, depthWrite: false });
+    const frontBoardGuidePoints: THREE.Vector3[] = [];
+    for (let x = 1; x < 5; x++) {
+      const z = frontBoardThickness / 2 + 0.002;
+      frontBoardGuidePoints.push(new THREE.Vector3(x - 2.5, -0.75, z),
+        new THREE.Vector3(x - 2.5, 0.75, z));
     }
-    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture,
-      transparent: true, depthTest: false, depthWrite: false }));
-    sprite.scale.set(size, size * 160 / 512, 1);
-    sprite.renderOrder = 4;
-    return sprite;
-  }
+    const frontBoardGuides = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints(frontBoardGuidePoints), frontBoardGuideMaterial);
+    frontBoardGuides.name = 'front-board-one-metre-guides';
+    frontBoardGuides.computeLineDistances();
+    frontBoard.add(frontBoardGuides);
+    walls.add(frontBoard);
+    const tunnels = createMazeTunnels(plan, thickness);
+    scene.add(tunnels.group);
+    const mountains = createMazeMountains(plan);
+    scene.add(mountains.group);
+    const wallGrid = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints([...verticalMarkers.values()].flat()),
+      new THREE.LineDashedMaterial({ color: '#745337', dashSize: 0.055, gapSize: 0.045,
+        transparent: true, opacity: 0.8, depthTest: false }));
+    wallGrid.computeLineDistances();
+    wallGrid.renderOrder = 3;
+    wallGrid.visible = false;
+    scene.add(wallGrid);
 
-  for (let z = 0; z < plan.rows; z++) {
-    for (let x = 0; x < plan.columns; x++) {
-      const tag = label(`${String.fromCharCode(65 + x)}${z + 1}`, '#7d7467', 0.95, true);
-      tag.position.copy(world(x + 0.24, 0.012, z + 0.22));
+    function label(text: string, color: string, size = 0.8, flat = false) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 160;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('文字の描画領域を作成できません。');
+      context.font = '600 78px system-ui, "Meiryo", sans-serif';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillStyle = color;
+      context.fillText(text, 256, 80);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      owned.add(texture);
+      if (flat) {
+        const mesh = new THREE.Mesh(plane(size, size * 160 / 512),
+          new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false }));
+        mesh.rotation.x = -Math.PI / 2;
+        return mesh;
+      }
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture,
+        transparent: true, depthTest: false, depthWrite: false }));
+      sprite.scale.set(size, size * 160 / 512, 1);
+      sprite.renderOrder = 4;
+      return sprite;
+    }
+
+    for (let z = 0; z < plan.rows; z++) {
+      for (let x = 0; x < plan.columns; x++) {
+        const tag = label(`${String.fromCharCode(65 + x)}${z + 1}`, '#7d7467', 0.95, true);
+        tag.position.copy(world(x + 0.24, 0.012, z + 0.22));
+        scene.add(tag);
+      }
+    }
+    const quizWalls = new THREE.Group();
+    quizWalls.name = 'quiz-walls';
+    scene.add(quizWalls);
+    for (const wall of plan.quizWalls) {
+      // クイズの通過位置を示す透かし壁。経路をふさぐ通常の壁とは分ける。
+      const [start, end] = wall.span ?? [0, 1];
+      const quizWidth = (end - start) * plan.cellSize;
+      const geometry = box(quizWidth, h, thickness);
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
+        color: wall.color, transparent: true, opacity: 0.25, depthWrite: false,
+      }));
+      const [x, z] = cellPoint(wall.cell);
+      if (wall.edge === 'left') {
+        mesh.position.copy(world(x, h / 2, z + (start + end) / 2));
+        mesh.rotation.y = Math.PI / 2;
+      } else {
+        mesh.position.copy(world(x + (start + end) / 2, h / 2, z));
+      }
+      mesh.name = `quiz-wall-${wall.cell}-${wall.symbol}`;
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry),
+        new THREE.LineBasicMaterial({ color: wall.color, transparent: true, opacity: 0.65,
+          depthWrite: false })));
+      const symbolMaterial = symbolMaterials.get(wall.symbol, wall.color);
+      // 記号も壁面に固定し、表裏の両方から見えるようにする。
+      for (const side of [-1, 1]) {
+        const symbolSize = Math.min(0.7, quizWidth * 0.7);
+        const symbol = new THREE.Mesh(plane(symbolSize, symbolSize), symbolMaterial);
+        symbol.position.z = side * (thickness / 2 + 0.003);
+        if (side < 0) symbol.rotation.y = Math.PI;
+        mesh.add(symbol);
+      }
+      quizWalls.add(mesh);
+    }
+
+    const solution = new THREE.Group();
+    solution.name = 'solution';
+    const solutionHeight = 0.75; // 床から75cmの高さにそろえる。
+    const routePoints = [world(0.5, solutionHeight, 7.35),
+      ...solutionPoints.map(([x, z]) => world(x, solutionHeight, z)),
+      world(6.5, solutionHeight, 7.35)];
+    const routeGeometry = new LineGeometry().setPositions(routePoints.flatMap(point => point.toArray()));
+    const route = new Line2(routeGeometry, new LineMaterial({ color: '#e88128',
+      worldUnits: true, linewidth: 0.04, dashed: true, dashSize: 0.22, gapSize: 0.12,
+      alphaToCoverage: true }));
+    route.computeLineDistances();
+    solution.add(route);
+    solution.visible = false;
+    scene.add(solution);
+
+    for (const [x, color, text] of [[0, '#25836b', 'START'], [6, '#bf584b', 'GOAL']] as const) {
+      const marker = new THREE.Mesh(plane(0.86, 0.86),
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, depthWrite: false }));
+      marker.rotation.x = -Math.PI / 2;
+      marker.position.copy(world(x + 0.5, 0.015, 6.5));
+      scene.add(marker);
+      const tag = label(text, color, 1.6);
+      tag.position.copy(world(x + 0.5, 0.06, 7.48));
       scene.add(tag);
     }
-  }
-  const quizWalls = new THREE.Group();
-  quizWalls.name = 'quiz-walls';
-  for (const wall of plan.quizWalls) {
-    // クイズの通過位置を示す透かし壁。経路をふさぐ通常の壁とは分ける。
-    const [start, end] = wall.span ?? [0, 1];
-    const quizWidth = (end - start) * plan.cellSize;
-    const geometry = new THREE.BoxGeometry(quizWidth, h, thickness);
-    const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({
-      color: wall.color, transparent: true, opacity: 0.25, depthWrite: false,
-    }));
-    const [x, z] = cellPoint(wall.cell);
-    if (wall.edge === 'left') {
-      mesh.position.copy(world(x, h / 2, z + (start + end) / 2));
-      mesh.rotation.y = Math.PI / 2;
-    } else {
-      mesh.position.copy(world(x + (start + end) / 2, h / 2, z));
+
+    const person = createScalePerson();
+    person.position.copy(scalePersonPosition(plan));
+    const personTag = label('130 cm', '#216987', 1.35);
+    personTag.position.set(0, 1.62, 0);
+    person.add(personTag);
+    scene.add(person);
+
+    const dimensions = new THREE.Group();
+    scene.add(dimensions);
+    const lineMaterial = new THREE.LineBasicMaterial({ color: '#788aa0' });
+    function dimension(a: THREE.Vector3, b: THREE.Vector3, text: string, offset: THREE.Vector3) {
+      dimensions.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), lineMaterial));
+      const horizontal = Math.abs(a.y - b.y) < 0.001;
+      const direction = b.clone().sub(a).normalize();
+      const tick = horizontal ? new THREE.Vector3(-direction.z, 0, direction.x).multiplyScalar(0.12)
+        : new THREE.Vector3(0.12, 0, 0);
+      for (const point of [a, b]) dimensions.add(new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([point.clone().sub(tick), point.clone().add(tick)]), lineMaterial));
+      const tag = label(text, '#3d526b', 1.6);
+      tag.position.copy(a.clone().add(b).multiplyScalar(0.5).add(offset));
+      dimensions.add(tag);
     }
-    mesh.name = `quiz-wall-${wall.cell}-${wall.symbol}`;
-    mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry),
-      new THREE.LineBasicMaterial({ color: wall.color, transparent: true, opacity: 0.65,
-        depthWrite: false })));
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 256;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('クイズの記号の描画領域を作成できません。');
-    context.strokeStyle = wall.color;
-    context.lineWidth = 20;
-    context.lineCap = 'round';
-    context.beginPath();
-    if (wall.symbol === '〇') {
-      context.arc(128, 128, 72, 0, Math.PI * 2);
-    } else {
-      context.moveTo(66, 66);
-      context.lineTo(190, 190);
-      context.moveTo(190, 66);
-      context.lineTo(66, 190);
+    dimension(world(0, 0.02, 7.95), world(7, 0.02, 7.95), '7 m', new THREE.Vector3(0, 0, 0.22));
+    dimension(world(-0.75, 0.02, 0), world(-0.75, 0.02, 7), '7 m', new THREE.Vector3(-0.26, 0.05, 0));
+    dimension(world(7.4, 0, 6.5), world(7.4, h, 6.5), '1.5 m', new THREE.Vector3(0.42, 0.1, 0));
+
+    const partTooltip = attachPartTooltip(container, renderer.domElement, scene, camera, [
+      { part: frontBoard, id: 'front-board-tooltip', size: '高さ 1.5 m × 幅 5 m',
+        description: '子供たちに絵を書いてもらった段ボールを配置' },
+      ...quizWalls.children.map((part, index) => ({ part, id: `quiz-wall-tooltip-${index}`,
+        description: '○×クイズ：〇✕クイズを出題し、クイズの回答に応じて進むルートを選んでもらう。' })),
+      ...tunnels.group.children.map((part, index) => {
+        const specification = plan.tunnels![index];
+        const length = Math.hypot(specification.to[0] - specification.from[0],
+          specification.to[1] - specification.from[1]) * plan.cellSize;
+        return { part, id: `tunnel-tooltip-${index}`,
+          size: `幅 ${specification.width} m × 長さ ${length} m × 中央高さ ${specification.height} m`,
+          description: `${specification.name}。半円のアーチ型の天井をくぐって進みます。` };
+      }),
+      ...mountains.group.children.map((part, index) => {
+        const specification = plan.mountains![index];
+        const length = Math.hypot(specification.to[0] - specification.from[0],
+          specification.to[1] - specification.from[1]) * plan.cellSize;
+        return { part, id: `mountain-tooltip-${index}`,
+          size: `幅 ${specification.width} m × 長さ ${length} m × 高さ ${specification.height} m`,
+          description: `${specification.name}。中央の頂点まで上り、反対側へ下って進みます。` };
+      }),
+    ]);
+
+    scope.defer(partTooltip.dispose);
+    let resizeFrame = 0;
+    let lastWidth = 0;
+    let lastHeight = 0;
+    let view: ViewMode = 'angled';
+    let angle = 45;
+    const solutionAnimation = animateSolutionRoute(route.material, render);
+    scope.defer(solutionAnimation.dispose);
+    scope.defer(() => window.cancelAnimationFrame(resizeFrame));
+    function resize() {
+      if (scope.disposed) return;
+      const bounds = container.getBoundingClientRect();
+      const w = Math.round(bounds.width);
+      const ht = Math.round(bounds.height);
+      if (w <= 0 || ht <= 0 || (w === lastWidth && ht === lastHeight)) return;
+      partTooltip.hide();
+      lastWidth = w;
+      lastHeight = ht;
+      const aspect = w / ht;
+      const span = aspect >= 1.5 ? 10.2 : aspect < 1 ? 12.4 : 11.5;
+      const viewHeight = span / Math.min(aspect, 1);
+      camera.left = -viewHeight * aspect / 2;
+      camera.right = viewHeight * aspect / 2;
+      camera.top = viewHeight / 2;
+      camera.bottom = -viewHeight / 2;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, ht, false);
+      render();
     }
-    context.stroke();
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    textures.push(texture);
-    const symbolMaterial = new THREE.MeshBasicMaterial({ map: texture, transparent: true,
-      depthWrite: false, toneMapped: false });
-    // 記号も壁面に固定し、表裏の両方から見えるようにする。
-    for (const side of [-1, 1]) {
-      const symbolSize = Math.min(0.7, quizWidth * 0.7);
-      const symbol = new THREE.Mesh(new THREE.PlaneGeometry(symbolSize, symbolSize), symbolMaterial);
-      symbol.position.z = side * (thickness / 2 + 0.003);
-      if (side < 0) symbol.rotation.y = Math.PI;
-      mesh.add(symbol);
-    }
-    quizWalls.add(mesh);
-  }
-  scene.add(quizWalls);
-
-  const solution = new THREE.Group();
-  solution.name = 'solution';
-  const solutionHeight = 0.75; // 床から75cmの高さにそろえる。
-  const routePoints = [world(0.5, solutionHeight, 7.35),
-    ...createRoutePoints(plan, plan.solution).map(([x, z]) => world(x, solutionHeight, z)),
-    world(6.5, solutionHeight, 7.35)];
-  const routeGeometry = new LineGeometry().setPositions(routePoints.flatMap(point => point.toArray()));
-  const route = new Line2(routeGeometry, new LineMaterial({ color: '#e88128',
-    worldUnits: true, linewidth: 0.04, dashed: true, dashSize: 0.22, gapSize: 0.12,
-    alphaToCoverage: true }));
-  route.computeLineDistances();
-  solution.add(route);
-  solution.visible = false;
-  scene.add(solution);
-
-  for (const [x, color, text] of [[0, '#25836b', 'START'], [6, '#bf584b', 'GOAL']] as const) {
-    const marker = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.86),
-      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, depthWrite: false }));
-    marker.rotation.x = -Math.PI / 2;
-    marker.position.copy(world(x + 0.5, 0.015, 6.5));
-    scene.add(marker);
-    const tag = label(text, color, 1.6);
-    tag.position.copy(world(x + 0.5, 0.06, 7.48));
-    scene.add(tag);
-  }
-
-  const person = createScalePerson();
-  person.position.copy(scalePersonPosition(plan));
-  const personTag = label('130 cm', '#216987', 1.35);
-  personTag.position.set(0, 1.62, 0);
-  person.add(personTag);
-  scene.add(person);
-
-  const dimensions = new THREE.Group();
-  const lineMaterial = new THREE.LineBasicMaterial({ color: '#788aa0' });
-  function dimension(a: THREE.Vector3, b: THREE.Vector3, text: string, offset: THREE.Vector3) {
-    dimensions.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), lineMaterial));
-    const horizontal = Math.abs(a.y - b.y) < 0.001;
-    const direction = b.clone().sub(a).normalize();
-    const tick = horizontal ? new THREE.Vector3(-direction.z, 0, direction.x).multiplyScalar(0.12)
-      : new THREE.Vector3(0.12, 0, 0);
-    for (const point of [a, b]) dimensions.add(new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([point.clone().sub(tick), point.clone().add(tick)]), lineMaterial));
-    const tag = label(text, '#3d526b', 1.6);
-    tag.position.copy(a.clone().add(b).multiplyScalar(0.5).add(offset));
-    dimensions.add(tag);
-  }
-  dimension(world(0, 0.02, 7.95), world(7, 0.02, 7.95), '7 m', new THREE.Vector3(0, 0, 0.22));
-  dimension(world(-0.75, 0.02, 0), world(-0.75, 0.02, 7), '7 m', new THREE.Vector3(-0.26, 0.05, 0));
-  dimension(world(7.4, 0, 6.5), world(7.4, h, 6.5), '1.5 m', new THREE.Vector3(0.42, 0.1, 0));
-  scene.add(dimensions);
-
-  const partTooltip = attachPartTooltip(container, renderer.domElement, scene, camera, [
-    { part: frontBoard, id: 'front-board-tooltip', size: '高さ 1.5 m × 幅 5 m',
-      description: '子供たちに絵を書いてもらった段ボールを配置' },
-    ...quizWalls.children.map((part, index) => ({ part, id: `quiz-wall-tooltip-${index}`,
-      description: '○×クイズ：〇✕クイズを出題し、クイズの回答に応じて進むルートを選んでもらう。' })),
-    ...tunnels.group.children.map((part, index) => {
-      const specification = plan.tunnels![index];
-      const length = Math.hypot(specification.to[0] - specification.from[0],
-        specification.to[1] - specification.from[1]) * plan.cellSize;
-      return { part, id: `tunnel-tooltip-${index}`,
-        size: `幅 ${specification.width} m × 長さ ${length} m × 中央高さ ${specification.height} m`,
-        description: `${specification.name}。半円のアーチ型の天井をくぐって進みます。` };
-    }),
-    ...mountains.group.children.map((part, index) => {
-      const specification = plan.mountains![index];
-      const length = Math.hypot(specification.to[0] - specification.from[0],
-        specification.to[1] - specification.from[1]) * plan.cellSize;
-      return { part, id: `mountain-tooltip-${index}`,
-        size: `幅 ${specification.width} m × 長さ ${length} m × 高さ ${specification.height} m`,
-        description: `${specification.name}。中央の頂点まで上り、反対側へ下って進みます。` };
-    }),
-  ]);
-
-  let disposed = false;
-  let resizeFrame = 0;
-  let lastWidth = 0;
-  let lastHeight = 0;
-  let view: ViewMode = 'angled';
-  let angle = 45;
-  const render = () => { if (!disposed) renderer.render(scene, camera); };
-  const solutionAnimation = animateSolutionRoute(route.material, render);
-  function resize() {
-    if (disposed) return;
-    const bounds = container.getBoundingClientRect();
-    const w = Math.round(bounds.width);
-    const ht = Math.round(bounds.height);
-    if (w <= 0 || ht <= 0 || (w === lastWidth && ht === lastHeight)) return;
-    partTooltip.hide();
-    lastWidth = w;
-    lastHeight = ht;
-    const aspect = w / ht;
-    const span = aspect >= 1.5 ? 10.2 : aspect < 1 ? 12.4 : 11.5;
-    const viewHeight = span / Math.min(aspect, 1);
-    camera.left = -viewHeight * aspect / 2;
-    camera.right = viewHeight * aspect / 2;
-    camera.top = viewHeight / 2;
-    camera.bottom = -viewHeight / 2;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, ht, false);
-    render();
-  }
-  function scheduleResize() {
-    if (disposed || resizeFrame) return;
-    // 観測通知の中でレイアウトを更新せず、同じフレームの通知をまとめる。
-    resizeFrame = window.requestAnimationFrame(() => {
-      resizeFrame = 0;
-      resize();
-    });
-  }
-  function updatePosition() {
-    const theta = THREE.MathUtils.degToRad(angle);
-    const elevation = view === 'top' ? Math.PI / 2 - 0.001 : view === 'angled' ? Math.PI / 3.3 : 0;
-    camera.position.set(Math.sin(theta) * Math.cos(elevation) * 18,
-      Math.sin(elevation) * 18 + controls.target.y, Math.cos(theta) * Math.cos(elevation) * 18);
-    controls.update();
-    render();
-  }
-  const changed = () => {
-    partTooltip.hide();
-    angle = (THREE.MathUtils.radToDeg(controls.getAzimuthalAngle()) + 360) % 360;
-    onChange(Math.round(angle) % 360, Math.round(camera.zoom * 100));
-    render();
-  };
-  controls.addEventListener('change', changed);
-  const observer = new ResizeObserver(scheduleResize);
-  observer.observe(container);
-  updatePosition();
-  resize();
-
-  return {
-    setView(next: ViewMode) {
-      view = next;
-      controls.target.set(0, 0.4, 0);
-      if (next === 'front') angle = 0;
-      if (next === 'right') angle = 90;
-      if (next === 'back') angle = 180;
-      if (next === 'left') angle = 270;
-      if (next === 'angled') angle = 45;
-      if (next === 'top') angle = 0;
-      updatePosition();
-    },
-    setAngle(value: number) { angle = value; updatePosition(); },
-    setZoom(value: number) { camera.zoom = value / 100; camera.updateProjectionMatrix(); controls.update(); changed(); },
-    setSolution(value: boolean) { solution.visible = value; solutionAnimation.setVisible(value); render(); },
-    setWindows(value: boolean) {
-      windowedWalls.visible = value;
-      solidWindowWalls.visible = !value;
-      windowsVisible = value;
-      updateDescription();
-      render();
-    },
-    setPerson(value: boolean) {
-      person.visible = value;
-      personVisible = value;
-      updateDescription();
-      render();
-    },
-    setQuiz(value: boolean) {
-      partTooltip.hide();
-      quizWalls.visible = value;
-      quizVisible = value;
-      updateDescription();
-      render();
-    },
-    setTunnels(value: boolean) {
-      partTooltip.hide();
-      tunnels.group.visible = value;
-      tunnelsVisible = value;
-      updateDescription();
-      render();
-    },
-    setTunnelTransparent(value: boolean) {
-      tunnels.setTransparent(value);
-      tunnelsTransparent = value;
-      updateDescription();
-      render();
-    },
-    setMountains(value: boolean) {
-      partTooltip.hide();
-      mountains.group.visible = value;
-      mountainsVisible = value;
-      updateDescription();
-      render();
-    },
-    setMountainTransparent(value: boolean) {
-      mountains.setTransparent(value);
-      mountainsTransparent = value;
-      updateDescription();
-      render();
-    },
-    setTransparent(value: boolean) {
-      for (const material of wallMaterials) {
-        material.transparent = value;
-        material.opacity = value ? 0.22 : 1;
-        material.depthWrite = !value;
-        material.needsUpdate = true;
-      }
-      windowEdgeMaterial.transparent = value;
-      windowEdgeMaterial.opacity = value ? 0.22 : 1;
-      frontBoardGuideMaterial.opacity = value ? 0.22 : 1;
-      windowEdgeMaterial.needsUpdate = true;
-      render();
-    },
-    setWallGrid(value: boolean) { wallGrid.visible = value; render(); },
-    reset() { camera.zoom = 1; camera.updateProjectionMatrix(); controls.target.set(0, 0.4, 0); view = 'angled'; angle = 45; updatePosition(); changed(); },
-    dispose() {
-      disposed = true;
-      solutionAnimation.dispose();
-      observer.disconnect();
-      window.cancelAnimationFrame(resizeFrame);
-      resizeFrame = 0;
-      controls.removeEventListener('change', changed);
-      controls.dispose();
-      partTooltip.dispose();
-      const geometries = new Set<THREE.BufferGeometry>();
-      const materials = new Set<THREE.Material>();
-      scene.traverse(object => {
-        if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.Sprite) {
-          if ('geometry' in object) geometries.add(object.geometry);
-          for (const material of Array.isArray(object.material) ? object.material : [object.material]) materials.add(material);
-        }
+    function scheduleResize() {
+      if (scope.disposed || resizeFrame) return;
+      // 観測通知の中でレイアウトを更新せず、同じフレームの通知をまとめる。
+      resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = 0;
+        resize();
       });
-      geometries.forEach(geometry => geometry.dispose());
-      materials.forEach(material => material.dispose());
-      textures.forEach(texture => texture.dispose());
-      renderer.dispose();
-      renderer.domElement.remove();
-      scene.clear();
-    },
-  };
+    }
+    function updatePosition() {
+      const theta = THREE.MathUtils.degToRad(angle);
+      const elevation = view === 'top' ? Math.PI / 2 - 0.001 : view === 'angled' ? Math.PI / 3.3 : 0;
+      camera.position.set(Math.sin(theta) * Math.cos(elevation) * 18,
+        Math.sin(elevation) * 18 + controls.target.y, Math.cos(theta) * Math.cos(elevation) * 18);
+      controls.update();
+      render();
+    }
+    const changed = () => {
+      partTooltip.hide();
+      angle = (THREE.MathUtils.radToDeg(controls.getAzimuthalAngle()) + 360) % 360;
+      onChange(Math.round(angle) % 360, Math.round(camera.zoom * 100));
+      render();
+    };
+    controls.addEventListener('change', changed);
+    scope.defer(() => controls.removeEventListener('change', changed));
+    const observer = new ResizeObserver(scheduleResize);
+    scope.defer(() => observer.disconnect());
+    observer.observe(container);
+    updatePosition();
+    resize();
+
+    return {
+      setView(next: ViewMode) {
+        view = next;
+        controls.target.set(0, 0.4, 0);
+        if (next === 'front') angle = 0;
+        if (next === 'right') angle = 90;
+        if (next === 'back') angle = 180;
+        if (next === 'left') angle = 270;
+        if (next === 'angled') angle = 45;
+        if (next === 'top') angle = 0;
+        updatePosition();
+      },
+      setAngle(value: number) { angle = value; updatePosition(); },
+      setZoom(value: number) { camera.zoom = value / 100; camera.updateProjectionMatrix(); controls.update(); changed(); },
+      setSolution(value: boolean) { solution.visible = value; solutionAnimation.setVisible(value); render(); },
+      setWindows(value: boolean) {
+        windowedWalls.visible = value;
+        solidWindowWalls.visible = !value;
+        windowsVisible = value;
+        updateDescription();
+        render();
+      },
+      setPerson(value: boolean) {
+        person.visible = value;
+        personVisible = value;
+        updateDescription();
+        render();
+      },
+      setQuiz(value: boolean) {
+        partTooltip.hide();
+        quizWalls.visible = value;
+        quizVisible = value;
+        updateDescription();
+        render();
+      },
+      setTunnels(value: boolean) {
+        partTooltip.hide();
+        tunnels.group.visible = value;
+        tunnelsVisible = value;
+        updateDescription();
+        render();
+      },
+      setTunnelTransparent(value: boolean) {
+        tunnels.setTransparent(value);
+        tunnelsTransparent = value;
+        updateDescription();
+        render();
+      },
+      setMountains(value: boolean) {
+        partTooltip.hide();
+        mountains.group.visible = value;
+        mountainsVisible = value;
+        updateDescription();
+        render();
+      },
+      setMountainTransparent(value: boolean) {
+        mountains.setTransparent(value);
+        mountainsTransparent = value;
+        updateDescription();
+        render();
+      },
+      setTransparent(value: boolean) {
+        for (const material of wallMaterials) {
+          material.transparent = value;
+          material.opacity = value ? 0.22 : 1;
+          material.depthWrite = !value;
+          material.needsUpdate = true;
+        }
+        windowEdgeMaterial.transparent = value;
+        windowEdgeMaterial.opacity = value ? 0.22 : 1;
+        frontBoardGuideMaterial.opacity = value ? 0.22 : 1;
+        windowEdgeMaterial.needsUpdate = true;
+        render();
+      },
+      setWallGrid(value: boolean) { wallGrid.visible = value; render(); },
+      reset() { camera.zoom = 1; camera.updateProjectionMatrix(); controls.target.set(0, 0.4, 0); view = 'angled'; angle = 45; updatePosition(); changed(); },
+      dispose: scope.dispose,
+    };
+  });
 }

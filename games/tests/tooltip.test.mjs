@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { attachPartTooltip } from '../src/three/attachPartTooltip.ts';
+import { frameClock } from './helpers/frameClock.mjs';
 
 // DOMの最小の代替でイベントを送り、交差判定は実際のThree.jsで確認する。
 class Element extends EventTarget {
@@ -22,6 +23,9 @@ class Element extends EventTarget {
 
 function withTooltip(check) {
   const previousDocument = globalThis.document;
+  const previousWindow = globalThis.window;
+  const clock = frameClock();
+  globalThis.window = clock;
   globalThis.document = Object.assign(new Element(), { createElement: () => new Element() });
   const container = new Element();
   const canvas = new Element();
@@ -49,17 +53,19 @@ function withTooltip(check) {
     { part: blue, id: 'blue-quiz', description: '○×クイズ' },
   ]);
   const bubble = container.children[0];
-  const send = (type, x = 250, extra = {}) => {
+  const send = (type, x = 250, extra = {}, flush = true) => {
     const event = Object.assign(new Event(type, { cancelable: true }), {
       clientX: x, clientY: 200, pointerType: 'mouse', pointerId: 1, button: 0, buttons: 0, ...extra,
     });
     canvas.dispatchEvent(event);
+    if (flush) clock.flush();
   };
-  try { check({ canvas, bubble, quiz, red, scene, send, tooltip }); }
+  try { check({ canvas, bubble, quiz, red, scene, send, tooltip, clock }); }
   finally {
     tooltip.dispose();
     geometry.dispose(); symbol.geometry.dispose(); material.dispose();
     globalThis.document = previousDocument;
+    globalThis.window = previousWindow;
   }
 }
 
@@ -93,11 +99,36 @@ test('非表示のクイズと手前の壁に隠れたクイズにはホバー�
     const blocker = new THREE.Mesh(red.geometry, red.material);
     blocker.position.set(0.5, 0, 1);
     scene.add(blocker);
+    tooltip.refresh();
     send('pointermove');
     assert.equal(bubble.hidden, true);
     blocker.removeFromParent();
+    tooltip.refresh();
     send('pointermove');
     assert.equal(bubble.hidden, false);
+  });
+});
+
+test('連続するホバーは最新位置で一度だけ判定し、離脱・終了後には表示しない', () => {
+  withTooltip(({ bubble, scene, send, tooltip, clock }) => {
+    let updates = 0;
+    const update = scene.updateMatrixWorld.bind(scene);
+    scene.updateMatrixWorld = (...args) => { updates++; update(...args); };
+    send('pointermove', 100, {}, false);
+    send('pointermove', 250, {}, false);
+    send('pointermove', 350, {}, false);
+    assert.equal(clock.size, 1);
+    assert.equal(updates, 0);
+    clock.flush();
+    assert.equal(updates, 1);
+    assert.equal(bubble.id, 'blue-quiz');
+    send('pointermove', 100, {}, false);
+    send('pointerleave');
+    assert.equal(bubble.hidden, true);
+    send('pointermove', 100, {}, false);
+    tooltip.dispose(); clock.flush();
+    assert.equal(bubble.hidden, true);
+    assert.equal(updates, 1);
   });
 });
 

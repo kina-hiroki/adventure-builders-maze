@@ -72,7 +72,7 @@ export function analyzeMaze(plan: MazePlan) {
     route.push(...(route.length ? leg.slice(1) : leg));
     start = target;
   }
-  const routePoints = createRoutePoints(plan, route);
+  const routePoints = createRoutePoints(plan, route, cells);
   const externalWalls = plan.walls.filter(({ from, to }) =>
     (from[0] === to[0] && (from[0] === 0 || from[0] === plan.columns))
     || (from[1] === to[1] && (from[1] === 0 || from[1] === plan.rows))).length;

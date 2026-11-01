@@ -52,8 +52,8 @@ export function isPassageBlocked(passage: Wall, walls: Wall[]): boolean {
       > Math.max(Math.min(wall.from[along], wall.to[along]), passage.from[along]));
 }
 
-export function createRoutePoints(plan: MazePlan, route: string[]): Point[] {
-  const cells = new Map(createMazeCells(plan).map(cell => [cell.id, cell]));
+export function createRoutePoints(plan: MazePlan, route: string[], mazeCells = createMazeCells(plan)): Point[] {
+  const cells = new Map(mazeCells.map(cell => [cell.id, cell]));
   const center = (cell: MazeCell): Point => {
     const point: Point = plan.solutionCenters?.[cell.id]
       ?? [(cell.from[0] + cell.to[0]) / 2, (cell.from[1] + cell.to[1]) / 2];
