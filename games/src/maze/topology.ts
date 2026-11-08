@@ -63,14 +63,31 @@ export function passageBetween(a: MazeCell, b: MazeCell): Wall | undefined {
   return undefined;
 }
 
-export function isPassageBlocked(passage: Wall, walls: Wall[]): boolean {
+// 境界の一部だけに壁がある場合は、残っている最も広い開口を使う。
+export function openPassage(passage: Wall, walls: Wall[]): Wall | undefined {
   const vertical = passage.from[0] === passage.to[0];
   const fixed = vertical ? 0 : 1;
   const along = vertical ? 1 : 0;
-  return walls.some(wall => wall.from[fixed] === passage.from[fixed]
-    && wall.to[fixed] === passage.from[fixed]
-    && Math.min(Math.max(wall.from[along], wall.to[along]), passage.to[along])
-      > Math.max(Math.min(wall.from[along], wall.to[along]), passage.from[along]));
+  let openings = [[Math.min(passage.from[along], passage.to[along]),
+    Math.max(passage.from[along], passage.to[along])]];
+  for (const wall of walls) {
+    if (wall.from[fixed] !== passage.from[fixed] || wall.to[fixed] !== passage.from[fixed]) continue;
+    const from = Math.min(wall.from[along], wall.to[along]);
+    const to = Math.max(wall.from[along], wall.to[along]);
+    openings = openings.flatMap(([a, b]) => {
+      if (to <= a || from >= b) return [[a, b]];
+      return [...(a < from ? [[a, from]] : []), ...(to < b ? [[to, b]] : [])];
+    });
+  }
+  const opening = openings.sort((a, b) => (b[1] - b[0]) - (a[1] - a[0]))[0];
+  if (!opening) return undefined;
+  const point = (value: number): Point => vertical
+    ? [passage.from[fixed], value] : [value, passage.from[fixed]];
+  return { from: point(opening[0]), to: point(opening[1]) };
+}
+
+export function isPassageBlocked(passage: Wall, walls: Wall[]): boolean {
+  return !openPassage(passage, walls);
 }
 
 export function createRoutePoints(plan: MazePlan, route: string[], mazeCells = createMazeCells(plan)): Point[] {
@@ -104,8 +121,9 @@ export function createRoutePoints(plan: MazePlan, route: string[], mazeCells = c
     if (i) {
       const previous = cells.get(route[i - 1])!;
       const previousCenter = center(previous);
-      const passage = passageBetween(previous, cell);
-      if (!passage || isPassageBlocked(passage, plan.walls)) throw new Error('正解ルートが壁を横切っています。');
+      const boundary = passageBetween(previous, cell);
+      const passage = boundary && openPassage(boundary, plan.walls);
+      if (!passage) throw new Error('正解ルートが壁を横切っています。');
       if (passage.from[0] === passage.to[0]) {
         const z = crossing(previousCenter[1], nextCenter[1], passage.from[1], passage.to[1]);
         add([previousCenter[0], z]); add([nextCenter[0], z]);
