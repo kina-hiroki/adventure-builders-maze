@@ -6,14 +6,14 @@ import { createMazeCells, createRoutePoints, openPassage } from '../src/maze/top
 
 const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5 C6 C7 D7 D6E D5E E5 E4 D4E D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5NE G5NW G5NE G5SE G6 F6 E6 E7 F7N G7'.split(' ');
 
-test('壁パネル68枚・総延長63.5m・外周24区間・内部44区間になる', () => {
+test('壁パネル70枚・総延長64.5m・外周24区間・内部46区間になる', () => {
   const result = analyzeMaze(pattern01);
-  assert.equal(pattern01.walls.length, 68);
-  assert.deepEqual(result.wallMaterials, { fullWidthPanels: 59, halfWidthPanels: 9, requiredSheets: 64 });
+  assert.equal(pattern01.walls.length, 70);
+  assert.deepEqual(result.wallMaterials, { fullWidthPanels: 59, halfWidthPanels: 11, requiredSheets: 65 });
   assert.equal(result.externalWalls, 24);
-  assert.equal(result.internalWalls, 44);
+  assert.equal(result.internalWalls, 46);
   assert.equal(pattern01.walls.reduce((sum, wall) => sum + Math.hypot(
-    wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), 0), 63.5);
+    wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), 0), 64.5);
   assert.equal(pattern01.cellSize, 1);
   assert.equal(pattern01.wallHeight, 1.5);
 });
@@ -30,19 +30,37 @@ test('半幅パネル2枚は原板1枚から切り出し、奇数枚なら原板
     { fullWidthPanels: 0, halfWidthPanels: 3, requiredSheets: 2 });
 });
 
-test('D3–E3間の縦壁を撤去して幅1mで左右に通行でき、隣の横壁は保持する', () => {
+test('D3–E3間は下半分の壁を残して上側50cmを通行でき、隣の横壁は保持する', () => {
   const target = { from: [4, 2], to: [4, 3] };
   const keys = new Set(pattern01.walls.map(wallKey));
   assert.ok(!keys.has(wallKey(target)));
   const { graph } = analyzeMaze(pattern01);
   assert.ok(graph.get('D3').includes('E3'));
   assert.ok(graph.get('E3').includes('D3'));
-  assert.deepEqual(createRoutePoints(pattern01, ['D3', 'E3']), [[3.5, 2.5], [4.5, 2.5]]);
+  assert.deepEqual(openPassage(target, pattern01.walls), { from: [4, 2], to: [4, 2.5] });
+  assert.deepEqual(createRoutePoints(pattern01, ['D3', 'E3']),
+    [[3.5, 2.5], [3.5, 2.25], [4.5, 2.25], [4.5, 2.5]]);
   for (const wall of [{ from: [3, 2], to: [4, 2] }, { from: [4, 3], to: [5, 3] }])
     assert.ok(keys.has(wallKey(wall)));
-  const restored = { ...pattern01, walls: [...pattern01.walls, target] };
+  const restored = { ...pattern01, walls: [...pattern01.walls, { from: [4, 2], to: [4, 2.5] }] };
   assert.ok(!analyzeMaze(restored).graph.get('D3').includes('E3'));
   assert.throws(() => createRoutePoints(restored, ['D3', 'E3']), /壁/);
+});
+
+test('E3左下とF3左上に縦50cm壁があり、開口は互い違いに残る', () => {
+  const keys = new Set(pattern01.walls.map(wallKey));
+  for (const wall of [{ from: [4, 2.5], to: [4, 3] }, { from: [5, 2], to: [5, 2.5] }])
+    assert.ok(keys.has(wallKey(wall)));
+  assert.deepEqual(openPassage({ from: [5, 2], to: [5, 3] }, pattern01.walls),
+    { from: [5, 2.5], to: [5, 3] });
+  const path = ['D3', 'E3', 'F3'];
+  const points = createRoutePoints(pattern01, path);
+  assert.deepEqual(points, [[3.5, 2.5], [3.5, 2.25], [4.5, 2.25], [4.5, 2.75], [5.5, 2.75], [5.5, 2.5]]);
+  assert.deepEqual(createRoutePoints(pattern01, [...path].reverse()), [...points].reverse());
+  const reversedWalls = { ...pattern01, walls: pattern01.walls.map(wall => ({ from: wall.to, to: wall.from })) };
+  assert.deepEqual(createRoutePoints(reversedWalls, path), points);
+  const blocked = { ...pattern01, walls: [...pattern01.walls, { from: [5, 2.5], to: [5, 3] }] };
+  assert.throws(() => createRoutePoints(blocked, ['E3', 'F3']), /壁/);
 });
 
 test('F2–G2・F3–G3間に指定された追加壁があり通過できない', () => {
