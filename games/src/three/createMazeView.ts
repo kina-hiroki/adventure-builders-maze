@@ -4,15 +4,14 @@ import { disposeObjectTree } from './disposeObjectTree.ts';
 import type { SceneResource } from './disposeObjectTree.ts';
 import { createQuizSymbolCache } from './createQuizSymbolCache.ts';
 import * as THREE from 'three';
+import { createSolutionAnts, ANT_SPACING } from './createSolutionAnts.ts';
 import { animateSolutionRoute } from './animateSolutionRoute.ts';
 import { attachPartTooltip } from './attachPartTooltip.ts';
 import { createScalePerson, scalePersonPosition } from './createScalePerson.ts';
 import { createMazeTunnels } from './createMazeTunnels.ts';
 import { createMazeMountains } from './createMazeMountains.ts';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Line2 } from 'three/addons/lines/Line2.js';
-import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
-import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+
 import { cellPoint, wallKey } from '../maze/analyzeMaze.ts';
 import { createOuterWallWindows } from '../maze/outerWallWindows.ts';
 import type { WindowShape } from '../maze/outerWallWindows.ts';
@@ -316,24 +315,13 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       quizWalls.add(mesh);
     }
 
-    const solution = new THREE.Group();
-    solution.name = 'solution';
-    const solutionHeight = 0.75; // 床から75cmの高さにそろえる。
-    const routeMaterial = new LineMaterial({ color: '#e88128',
-      worldUnits: true, linewidth: 0.04, dashed: true, dashSize: 0.22, gapSize: 0.12,
-      alphaToCoverage: true });
-    owned.add(routeMaterial);
+    const solutionAnts = createSolutionAnts();
+    scope.defer(solutionAnts.dispose);
+    const solution = solutionAnts.group;
     solution.visible = false;
     scene.add(solution);
     function replaceSolutionPaths(paths: readonly (readonly Point[])[]) {
-      for (const line of solution.children) (line as Line2).geometry.dispose();
-      solution.clear();
-      for (const points of paths) {
-        const positions = points.flatMap(([x, z]) => world(x, solutionHeight, z).toArray());
-        const line = new Line2(new LineGeometry().setPositions(positions), routeMaterial);
-        solution.add(line);
-        line.computeLineDistances();
-      }
+      solutionAnts.setPaths(paths.map(points => points.map(([x, z]) => world(x, 0.75, z))));
     }
     replaceSolutionPaths(solutionPaths);
 
@@ -419,7 +407,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     let lastHeight = 0;
     let view: ViewMode = 'angled';
     let angle = 45;
-    const solutionAnimation = animateSolutionRoute(routeMaterial, render);
+    const solutionAnimation = animateSolutionRoute(ANT_SPACING, solutionAnts.update, render);
     scope.defer(solutionAnimation.dispose);
     scope.defer(() => window.cancelAnimationFrame(resizeFrame));
     function resize() {

@@ -1,7 +1,5 @@
-import type { LineMaterial } from 'three/addons/lines/LineMaterial.js';
-
-/** 点線の位相を進め、経路の先頭（START）から末尾（GOAL）へ流す。 */
-export function animateSolutionRoute(material: Pick<LineMaterial, 'dashOffset' | 'dashSize' | 'gapSize'>,
+/** 蟻の列を等速でSTARTからGOALへ進める。距離の周期は蟻同士の間隔。 */
+export function animateSolutionRoute(period: number, update: (distance: number) => void,
   render: () => void) {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const events = new AbortController();
@@ -22,8 +20,8 @@ export function animateSolutionRoute(material: Pick<LineMaterial, 'dashOffset' |
     if (!canAnimate()) return;
     if (previousTime !== undefined) {
       const elapsed = Math.min((time - previousTime) / 1000, 0.1);
-      distance = (distance + elapsed * 0.6) % (material.dashSize + material.gapSize);
-      material.dashOffset = -distance;
+      distance = (distance + elapsed * 0.28) % period;
+      update(distance);
     }
     previousTime = time;
     render();
@@ -42,7 +40,7 @@ export function animateSolutionRoute(material: Pick<LineMaterial, 'dashOffset' |
       enabled = value;
       if (!value) {
         distance = 0;
-        material.dashOffset = 0;
+        update(0);
       }
       sync();
     },
