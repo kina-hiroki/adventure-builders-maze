@@ -41,7 +41,6 @@ app.innerHTML = `
       <div class="setting-row"><label for="rotation">回転 <output id="rotation-value" for="rotation">45°</output></label><input id="rotation" type="range" min="0" max="359" step="1" value="45"></div>
       <div class="setting-row"><label for="zoom">拡大率 <output id="zoom-value" for="zoom">100%</output></label><input id="zoom" type="range" min="100" max="300" step="10" value="100"></div>
       <div class="setting-row toggle-row"><div><label for="transparent-walls">壁を透かす</label><p>迷路の壁を透かし、奥の通路や正解ルートを確認できます。</p></div><input id="transparent-walls" type="checkbox" role="switch"></div>
-      <div class="setting-row toggle-row"><div><label for="wall-grid">壁に1m間隔の縦の点線を表示</label><p>壁パネルの区切りを確認できます。</p></div><input id="wall-grid" type="checkbox" role="switch"></div>
       <div class="setting-row toggle-row"><div><label for="show-windows">外壁の窓を表示</label><p>正面以外の3面を、窓あり／窓なしに切り替えます。</p></div><input id="show-windows" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-person">人物を表示</label><p>入口の左横に身長130cmの人物を表示し、大きさを比較できます。</p></div><input id="show-person" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-quiz">○×クイズを表示</label><p>赤✕・青〇の透かし壁を表示します。</p></div><input id="show-quiz" type="checkbox" role="switch" checked></div>
@@ -100,7 +99,7 @@ const loader = loadView({
       element(id).addEventListener(event, callback, { signal: events.signal });
     const booleanSettings = {
       'show-solution': 'setSolution', 'transparent-walls': 'setTransparent',
-      'wall-grid': 'setWallGrid', 'show-windows': 'setWindows', 'show-person': 'setPerson',
+      'show-windows': 'setWindows', 'show-person': 'setPerson',
       'show-quiz': 'setQuiz', 'show-tunnels': 'setTunnels', 'transparent-tunnels': 'setTunnelTransparent',
       'show-mountains': 'setMountains', 'transparent-mountains': 'setMountainTransparent',
     } as const;

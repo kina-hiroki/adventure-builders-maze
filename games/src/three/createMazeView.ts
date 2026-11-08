@@ -173,7 +173,6 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     const windowGeometries = new Map<WindowShape, THREE.ExtrudeGeometry>();
     const windowOutlines = new Map<WindowShape, THREE.BufferGeometry>();
     const windowEdgeMaterial = new THREE.LineBasicMaterial({ color: '#78512f', depthWrite: false });
-    const verticalMarkers = new Map<string, THREE.Vector3[]>();
     for (const wall of plan.walls) {
       const vertical = wall.from[0] === wall.to[0];
       const length = Math.hypot(wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]) * plan.cellSize;
@@ -217,15 +216,6 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       } else {
         walls.add(mesh);
       }
-      for (const [x, z] of [wall.from, wall.to]) {
-        for (const sign of [-1, 1]) {
-          const offset = sign * (thickness / 2 + 0.003);
-          const bottom = world(x, 0.015, z);
-          if (vertical) bottom.x += offset;
-          else bottom.z += offset;
-          verticalMarkers.set(bottom.toArray().join(','), [bottom, bottom.clone().setY(h - 0.01)]);
-        }
-      }
     }
     // 正面のB7〜F7に密着させ、両端の入口A7・出口G7を空けておく。
     const frontBoardThickness = 0.02; // 板厚の指定がないため、表示用に2cmとする。
@@ -252,15 +242,6 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     scene.add(tunnels.group);
     const mountains = createMazeMountains(plan);
     scene.add(mountains.group);
-    const wallGrid = new THREE.LineSegments(
-      new THREE.BufferGeometry().setFromPoints([...verticalMarkers.values()].flat()),
-      new THREE.LineDashedMaterial({ color: '#745337', dashSize: 0.055, gapSize: 0.045,
-        transparent: true, opacity: 0.8, depthTest: false }));
-    wallGrid.computeLineDistances();
-    wallGrid.renderOrder = 3;
-    wallGrid.visible = false;
-    scene.add(wallGrid);
-
     function label(text: string, color: string, size = 0.8, flat = false) {
       const canvas = document.createElement('canvas');
       canvas.width = 512;
@@ -571,7 +552,6 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
         windowEdgeMaterial.needsUpdate = true;
         render();
       },
-      setWallGrid(value: boolean) { wallGrid.visible = value; render(); },
       reset() { camera.zoom = 1; camera.updateProjectionMatrix(); controls.target.set(0, 0.4, 0); view = 'angled'; angle = 45; updatePosition(); changed(); },
       dispose: scope.dispose,
     };
