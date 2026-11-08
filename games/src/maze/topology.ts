@@ -6,16 +6,16 @@ export interface MazeCell {
   to: Point;
 }
 
-// 1m区画の中央を通る壁がある場合だけ、通行区画を左右／上下に分ける。
-// W/Eは西／東、N/Sは北／南。元の区画座標は維持する。
+// 1m区画の中央に壁がかかる場合、部分的な壁でも左右／上下に分ける。
+// W/Eは西／東、N/Sは北／南。両方向に壁がある場合は50cm四方の4区画。
 export function createMazeCells(plan: MazePlan): MazeCell[] {
   const cells: MazeCell[] = [];
   for (let z = 0; z < plan.rows; z++) {
     for (let x = 0; x < plan.columns; x++) {
       const splitX = plan.walls.some(wall => wall.from[0] === x + 0.5 && wall.to[0] === x + 0.5
-        && Math.min(wall.from[1], wall.to[1]) <= z && Math.max(wall.from[1], wall.to[1]) >= z + 1);
+        && Math.min(wall.from[1], wall.to[1]) < z + 1 && Math.max(wall.from[1], wall.to[1]) > z);
       const splitZ = plan.walls.some(wall => wall.from[1] === z + 0.5 && wall.to[1] === z + 0.5
-        && Math.min(wall.from[0], wall.to[0]) <= x && Math.max(wall.from[0], wall.to[0]) >= x + 1);
+        && Math.min(wall.from[0], wall.to[0]) < x + 1 && Math.max(wall.from[0], wall.to[0]) > x);
       const nx = splitX ? 2 : 1;
       const nz = splitZ ? 2 : 1;
       for (let iz = 0; iz < nz; iz++) {
