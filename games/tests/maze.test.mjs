@@ -6,14 +6,14 @@ import { createMazeCells, createRoutePoints } from '../src/maze/topology.ts';
 
 const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5 C6 C7 D7 D6E D5E E5 E4 D4 D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5E G5 G6 F6 E6 E7 F7N G7'.split(' ');
 
-test('壁パネル64枚・総延長62.5m・外周24区間・内部40区間になる', () => {
+test('壁パネル63枚・総延長61.5m・外周24区間・内部39区間になる', () => {
   const result = analyzeMaze(pattern01);
-  assert.equal(pattern01.walls.length, 64);
-  assert.deepEqual(result.wallMaterials, { fullWidthPanels: 61, halfWidthPanels: 3, requiredSheets: 63 });
+  assert.equal(pattern01.walls.length, 63);
+  assert.deepEqual(result.wallMaterials, { fullWidthPanels: 60, halfWidthPanels: 3, requiredSheets: 62 });
   assert.equal(result.externalWalls, 24);
-  assert.equal(result.internalWalls, 40);
+  assert.equal(result.internalWalls, 39);
   assert.equal(pattern01.walls.reduce((sum, wall) => sum + Math.hypot(
-    wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), 0), 62.5);
+    wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), 0), 61.5);
   assert.equal(pattern01.cellSize, 1);
   assert.equal(pattern01.wallHeight, 1.5);
 });
@@ -30,6 +30,21 @@ test('半幅パネル2枚は原板1枚から切り出し、奇数枚なら原板
     { fullWidthPanels: 0, halfWidthPanels: 3, requiredSheets: 2 });
 });
 
+test('D3–E3間の縦壁を撤去して幅1mで左右に通行でき、隣の横壁は保持する', () => {
+  const target = { from: [4, 2], to: [4, 3] };
+  const keys = new Set(pattern01.walls.map(wallKey));
+  assert.ok(!keys.has(wallKey(target)));
+  const { graph } = analyzeMaze(pattern01);
+  assert.ok(graph.get('D3').includes('E3'));
+  assert.ok(graph.get('E3').includes('D3'));
+  assert.deepEqual(createRoutePoints(pattern01, ['D3', 'E3']), [[3.5, 2.5], [4.5, 2.5]]);
+  for (const wall of [{ from: [3, 2], to: [4, 2] }, { from: [4, 3], to: [5, 3] }])
+    assert.ok(keys.has(wallKey(wall)));
+  const restored = { ...pattern01, walls: [...pattern01.walls, target] };
+  assert.ok(!analyzeMaze(restored).graph.get('D3').includes('E3'));
+  assert.throws(() => createRoutePoints(restored, ['D3', 'E3']), /壁/);
+});
+
 test('F2–G2・F3–G3間に指定された追加壁があり通過できない', () => {
   const result = analyzeMaze(pattern01);
   for (const row of [1, 2]) {
@@ -38,11 +53,11 @@ test('F2–G2・F3–G3間に指定された追加壁があり通過できない
   }
 });
 
-test('本体55区画と抜け道4区画がつながり、循環5・分岐15・曲がり角28になる', () => {
+test('本体55区画と抜け道4区画がつながり、循環6・分岐16・曲がり角28になる', () => {
   const result = analyzeMaze(pattern01);
   assert.equal(result.connectedCells, 59);
-  assert.equal(result.edges, 63);
-  assert.equal(result.branches, 15);
+  assert.equal(result.edges, 64);
+  assert.equal(result.branches, 16);
   assert.equal(result.turns, 28);
   assert.deepEqual(result.route, expectedRoute);
   assert.deepEqual(pattern01.solution, expectedRoute);
@@ -126,8 +141,8 @@ test('正解線はB1・C1付近の幅1.5mの通路中央を直線で通る', () 
       && Math.min(routePoints[i][0], b[0]) <= x && Math.max(routePoints[i][0], b[0]) >= x));
   }
   const shortest = analyzeMaze({ ...pattern01, solutionVia: undefined });
-  assert.equal(shortest.route.length, 41);
-  assert.ok(shortest.route.includes('B2N') && shortest.route.includes('C2N'));
+  assert.equal(shortest.route.length, 33);
+  assert.deepEqual(shortest.route.slice(shortest.route.indexOf('D3'), shortest.route.indexOf('D3') + 2), ['D3', 'E3']);
 });
 
 test('通過位置が区画外・壁面上・数値不正の場合は描画を拒否する', () => {
@@ -258,7 +273,7 @@ test('D7上辺の左半分が赤✕、右半分が青〇で、正解線は右〇
   assert.deepEqual(crossings.map(point => point[0]), [3.75]);
 });
 
-test('F5・F7と中央の壁追加・B2とC2の移動・縦壁の切り詰め・C5–C6間の開口と北側の抜け道を戻すと元の配置を再現する', () => {
+test('F5・F7と中央の壁追加・B2とC2の移動・縦壁の切り詰め・C5–C6・D3–E3間の開口と北側の抜け道を戻すと元の配置を再現する', () => {
   const restoredWalls = pattern01.walls.map(wall => {
     if (wall.from[1] === 1.5 && wall.to[1] === 1.5)
       return { from: [wall.from[0], 1], to: [wall.to[0], 1] };
@@ -268,7 +283,8 @@ test('F5・F7と中央の壁追加・B2とC2の移動・縦壁の切り詰め・
     return wall;
   });
   const original = { ...pattern01, externalPassages: undefined, alternativeSolutions: undefined, solutionVia: [], solutionCenters: undefined, walls: [...restoredWalls,
-    { from: [2, 5], to: [3, 5] }, { from: [0, 0], to: [1, 0] }, { from: [3, 0], to: [4, 0] }].filter(wall =>
+    { from: [2, 5], to: [3, 5] }, { from: [0, 0], to: [1, 0] }, { from: [3, 0], to: [4, 0] },
+    { from: [4, 2], to: [4, 3] }].filter(wall =>
     [...wall.from, ...wall.to].every(Number.isInteger)) };
   const result = analyzeMaze(original);
   assert.equal(original.walls.length, 62);

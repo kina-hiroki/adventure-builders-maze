@@ -5,6 +5,7 @@ import type { MazePlan } from './types.ts';
 // 両端の縦壁は上側に突き出す0.5mを除き、横壁の位置から下側だけ残す。
 // C5–C6間の横壁1mはなく、B5〜C6の4区画は内部でつながる。
 // A1・D1の上辺を開け、本体北側の幅1m・横4mの抜け道へつなぐ。
+// D3–E3間の縦壁1mを撤去し、左右に通り抜けられるようにする。
 export const pattern01: MazePlan = {
   "id": "pattern-01",
   "name": "パターン01",
@@ -58,7 +59,6 @@ export const pattern01: MazePlan = {
     { "from": [3, 4], "to": [3, 5] },
     { "from": [3, 5], "to": [3, 6] },
     { "from": [4, 0], "to": [4, 1] },
-    { "from": [4, 2], "to": [4, 3] },
     { "from": [4, 5], "to": [4, 6] },
     { "from": [4, 6], "to": [4, 7] },
     { "from": [5, 1], "to": [5, 2] },
