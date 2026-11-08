@@ -14,9 +14,9 @@ function setup(t, reduce = false) {
     cancelAnimationFrame: id => frames.delete(id) };
   Object.defineProperty(globalThis, 'window', { value: win, configurable: true });
   Object.defineProperty(globalThis, 'document', { value: doc, configurable: true });
-  const motion = { distance: 0 };
+  const material = { dashOffset: 0, dashSize: 0.22, gapSize: 0.12 };
   let renders = 0;
-  const animation = animateSolutionRoute(0.45, distance => { motion.distance = distance; }, () => renders++);
+  const animation = animateSolutionRoute(material, () => renders++);
   t.after(() => {
     animation.dispose();
     for (const key of ['window', 'document']) {
@@ -24,34 +24,34 @@ function setup(t, reduce = false) {
       else delete globalThis[key];
     }
   });
-  return { animation, motion, frames, media, doc, renders: () => renders,
+  return { animation, material, frames, media, doc, renders: () => renders,
     step(time) { const pending = [...frames.values()]; frames.clear(); pending.forEach(callback => callback(time)); } };
 }
 
-test('表示中だけ蟻がSTARTからGOAL方向へ進み、フレームレートに依存しない', t => {
+test('表示中だけ点線がSTARTからGOAL方向へ進み、フレームレートに依存しない', t => {
   const scene = setup(t);
   assert.equal(scene.frames.size, 0);
   scene.animation.setVisible(true);
   scene.step(0);
   scene.step(100);
-  assert.ok(Math.abs(scene.motion.distance - 0.028) < 1e-10, '毎秒28cmでGOAL方向へ進む');
-  const first = scene.motion.distance;
+  assert.ok(scene.material.dashOffset < 0, '負の位相で経路の距離が増える方向へ進む');
+  const first = scene.material.dashOffset;
   scene.step(150); scene.step(200);
-  assert.ok(Math.abs(scene.motion.distance - first * 2) < 1e-10);
+  assert.ok(Math.abs(scene.material.dashOffset - first * 2) < 1e-10);
   assert.equal(scene.frames.size, 1);
   assert.equal(scene.renders(), 4);
 });
 
-test('非表示で停止し、再表示は先頭の蟻の配置から再開する', t => {
+test('非表示で停止し、再表示は先頭の点線配置から再開する', t => {
   const scene = setup(t);
   scene.animation.setVisible(true); scene.step(0); scene.step(100);
   scene.animation.setVisible(false);
   assert.equal(scene.frames.size, 0);
-  assert.equal(scene.motion.distance, 0);
+  assert.equal(scene.material.dashOffset, 0);
   const count = scene.renders(); scene.step(200);
   assert.equal(scene.renders(), count);
   scene.animation.setVisible(true); scene.step(500); scene.step(600);
-  assert.ok(scene.motion.distance > 0);
+  assert.ok(scene.material.dashOffset < 0);
 });
 
 test('動きを減らす設定とバックグラウンドタブでは停止し、復帰時に時間が飛ばない', t => {
@@ -60,12 +60,12 @@ test('動きを減らす設定とバックグラウンドタブでは停止し�
   assert.equal(scene.frames.size, 0);
   scene.media.matches = false; scene.media.dispatchEvent(new Event('change'));
   scene.step(0); scene.step(100);
-  const offset = scene.motion.distance;
+  const offset = scene.material.dashOffset;
   scene.doc.hidden = true; scene.doc.dispatchEvent(new Event('visibilitychange'));
   assert.equal(scene.frames.size, 0);
   scene.doc.hidden = false; scene.doc.dispatchEvent(new Event('visibilitychange'));
   scene.step(10000);
-  assert.equal(scene.motion.distance, offset);
+  assert.equal(scene.material.dashOffset, offset);
   scene.media.matches = true; scene.media.dispatchEvent(new Event('change'));
   assert.equal(scene.frames.size, 0);
 });
