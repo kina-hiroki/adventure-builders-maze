@@ -6,6 +6,7 @@ import type { MazePlan } from './types.ts';
 // C5–C6間の横壁1mはなく、B5〜C6の4区画は内部でつながる。
 // A1・D1の上辺を開け、本体北側の幅1m・横4mの抜け道へつなぐ。
 // D3–E3間の縦壁1mを撤去し、左右に通り抜けられるようにする。
+// C4右辺の縦壁をD4中央へ東に0.5m移動し、上端の横壁を東へ0.5m延長。
 export const pattern01: MazePlan = {
   "id": "pattern-01",
   "name": "パターン01",
@@ -20,6 +21,8 @@ export const pattern01: MazePlan = {
   "addedWalls": [
     "F2–G2",
     "F3–G3",
+    "D4中央（C4右辺から東へ0.5m移動）",
+    "C4上辺の東側延長（東西方向・0.5m）",
     "D5中央（南北方向）",
     "D6中央（南北方向）",
     "F5中央（南北方向・1m）",
@@ -55,7 +58,8 @@ export const pattern01: MazePlan = {
     { "from": [1, 6], "to": [1, 7] },
     { "from": [2, 2], "to": [2, 3] },
     { "from": [3, 1.5], "to": [3, 2] },
-    { "from": [3, 3], "to": [3, 4] },
+    { "from": [3.5, 3], "to": [3.5, 4] },
+    { "from": [3, 3], "to": [3.5, 3] },
     { "from": [3, 4], "to": [3, 5] },
     { "from": [3, 5], "to": [3, 6] },
     { "from": [4, 0], "to": [4, 1] },
@@ -157,7 +161,7 @@ export const pattern01: MazePlan = {
     "D5E",
     "E5",
     "E4",
-    "D4",
+    "D4E",
     "D3",
     "C3",
     "C2S",

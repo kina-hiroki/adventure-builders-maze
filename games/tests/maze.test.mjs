@@ -4,16 +4,16 @@ import { pattern01 } from '../src/maze/pattern01.ts';
 import { analyzeMaze, wallKey } from '../src/maze/analyzeMaze.ts';
 import { createMazeCells, createRoutePoints } from '../src/maze/topology.ts';
 
-const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5 C6 C7 D7 D6E D5E E5 E4 D4 D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5E G5 G6 F6 E6 E7 F7N G7'.split(' ');
+const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5 C6 C7 D7 D6E D5E E5 E4 D4E D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5E G5 G6 F6 E6 E7 F7N G7'.split(' ');
 
-test('壁パネル63枚・総延長61.5m・外周24区間・内部39区間になる', () => {
+test('壁パネル64枚・総延長62m・外周24区間・内部40区間になる', () => {
   const result = analyzeMaze(pattern01);
-  assert.equal(pattern01.walls.length, 63);
-  assert.deepEqual(result.wallMaterials, { fullWidthPanels: 60, halfWidthPanels: 3, requiredSheets: 62 });
+  assert.equal(pattern01.walls.length, 64);
+  assert.deepEqual(result.wallMaterials, { fullWidthPanels: 60, halfWidthPanels: 4, requiredSheets: 62 });
   assert.equal(result.externalWalls, 24);
-  assert.equal(result.internalWalls, 39);
+  assert.equal(result.internalWalls, 40);
   assert.equal(pattern01.walls.reduce((sum, wall) => sum + Math.hypot(
-    wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), 0), 61.5);
+    wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), 0), 62);
   assert.equal(pattern01.cellSize, 1);
   assert.equal(pattern01.wallHeight, 1.5);
 });
@@ -53,11 +53,11 @@ test('F2–G2・F3–G3間に指定された追加壁があり通過できない
   }
 });
 
-test('本体55区画と抜け道4区画がつながり、循環6・分岐16・曲がり角28になる', () => {
+test('本体56区画と抜け道4区画がつながり、循環6・分岐17・曲がり角28になる', () => {
   const result = analyzeMaze(pattern01);
-  assert.equal(result.connectedCells, 59);
-  assert.equal(result.edges, 64);
-  assert.equal(result.branches, 16);
+  assert.equal(result.connectedCells, 60);
+  assert.equal(result.edges, 65);
+  assert.equal(result.branches, 17);
   assert.equal(result.turns, 28);
   assert.deepEqual(result.route, expectedRoute);
   assert.deepEqual(pattern01.solution, expectedRoute);
@@ -244,6 +244,31 @@ for (const [name, via] of [['トンネル', pattern01.solutionVia], ['抜け道'
   });
 }
 
+test('C4右辺の壁をD4中央へ50cm移し、上端を横に50cm延長してD4西側を行き止まりにする', () => {
+  const keys = new Set(pattern01.walls.map(wallKey));
+  assert.ok(!keys.has(wallKey({ from: [3, 3], to: [3, 4] })));
+  for (const row of [3, 4, 5])
+    assert.ok(keys.has(wallKey({ from: [3.5, row], to: [3.5, row + 1] })));
+  assert.ok(keys.has(wallKey({ from: [3, 3], to: [3.5, 3] })));
+  const { graph } = analyzeMaze(pattern01);
+  assert.deepEqual(graph.get('D4W'), ['C4']);
+  assert.deepEqual(graph.get('D4E'), ['D3', 'E4']);
+  const cells = createMazeCells(pattern01);
+  for (const id of ['D4W', 'D4E']) {
+    const cell = cells.find(cell => cell.id === id);
+    assert.equal(cell.to[0] - cell.from[0], 0.5);
+    assert.equal(cell.to[1] - cell.from[1], 1);
+  }
+  for (const via of [pattern01.solutionVia, pattern01.alternativeSolutions[0].via]) {
+    const { route, routePoints } = analyzeMaze(pattern01, via);
+    const index = route.indexOf('E4');
+    assert.deepEqual(route.slice(index, index + 3), ['E4', 'D4E', 'D3']);
+    assert.ok(routePoints.some(([x, z]) => x === 3.75 && z === 3.5));
+  }
+  assert.throws(() => createRoutePoints(pattern01, ['D4W', 'D4E']), /壁/);
+  assert.throws(() => createRoutePoints(pattern01, ['D4W', 'D3']), /壁/);
+});
+
 test('D5・D6の中央壁は2mで、左右0.5mに分かれ、左は行き止まり・右はE5へ進める', () => {
   for (const row of [4, 5]) assert.ok(pattern01.walls.some(wall =>
     wallKey(wall) === wallKey({ from: [3.5, row], to: [3.5, row + 1] })));
@@ -273,8 +298,10 @@ test('D7上辺の左半分が赤✕、右半分が青〇で、正解線は右〇
   assert.deepEqual(crossings.map(point => point[0]), [3.75]);
 });
 
-test('F5・F7と中央の壁追加・B2とC2の移動・縦壁の切り詰め・C5–C6・D3–E3間の開口と北側の抜け道を戻すと元の配置を再現する', () => {
+test('F5・F7と中央の壁追加・B2とC2の移動・縦壁の切り詰め・C5–C6・D3–E3間の開口・北側の抜け道・C4右辺の移動を戻すと元の配置を再現する', () => {
   const restoredWalls = pattern01.walls.map(wall => {
+    if (wall.from[0] === 3.5 && wall.to[0] === 3.5 && wall.from[1] === 3 && wall.to[1] === 4)
+      return { from: [3, 3], to: [3, 4] };
     if (wall.from[1] === 1.5 && wall.to[1] === 1.5)
       return { from: [wall.from[0], 1], to: [wall.to[0], 1] };
     if ([1, 3].includes(wall.from[0]) && wall.from[0] === wall.to[0]
