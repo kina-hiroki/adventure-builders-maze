@@ -18,7 +18,6 @@ app.innerHTML = `
     <section class="intro" aria-labelledby="page-title">
       <div><p class="eyebrow">CARDBOARD MAZE / 01</p><h1 id="page-title">パターン01<span>迷路を、立体で。</span></h1>
       <p class="lead">平面図をもとに、ギミックに合わせた壁配置を3Dへ。視点を変えて、通路と全体の形を確かめられます。</p></div>
-      <span class="revision-badge"><span aria-hidden="true">●</span> B5〜C6にボールプール</span>
     </section>
     <dl class="specs" aria-label="迷路の仕様">
       <div><dt>縦 × 横</dt><dd>7 <span>×</span> 7 <small>m</small></dd></div>
@@ -30,7 +29,7 @@ app.innerHTML = `
     <section class="viewer-card" aria-labelledby="viewer-title">
       <div class="viewer-heading"><h2 id="viewer-title">3Dプレビュー</h2><span class="viewer-legend"><i class="start-dot"></i> 入口 A7 <i class="goal-dot"></i> 出口 G7</span></div>
       <div id="maze-stage" class="maze-stage"></div>
-      <p id="navigation-help" class="navigation-help">ドラッグで回転 · ホイールで拡大 · 右ドラッグで移動<br>白い板・○×クイズ・トンネル・山越えゾーン・ボールプールにカーソルを合わせる・タップで説明（キーボード：迷路を選択してEnterで説明を切り替え、Escで閉じる）<span>タッチ操作：1本指で回転、2本指で拡大・移動</span></p>
+      <p id="navigation-help" class="navigation-help">ドラッグで回転 · ホイールで拡大 · 右ドラッグで移動<br>白い板・○×クイズ・トンネル・山越えゾーンにカーソルを合わせる・タップで説明（キーボード：迷路を選択してEnterで説明を切り替え、Escで閉じる）<span>タッチ操作：1本指で回転、2本指で拡大・移動</span></p>
     </section>
     <section class="settings" aria-labelledby="settings-title">
       <div class="section-heading"><h2 id="settings-title">表示設定</h2><p>見たい角度と表示に調整できます。</p></div>
@@ -47,7 +46,6 @@ app.innerHTML = `
       <div class="setting-row toggle-row"><div><label for="transparent-tunnels">トンネルを透かす</label><p>天井と側壁を透かし、トンネル内の通路や正解ルートを確認できます。</p></div><input id="transparent-tunnels" type="checkbox" role="switch"></div>
       <div class="setting-row toggle-row"><div><label for="show-mountains">山越えゾーンを表示</label><p>A5〜A6（長さ2m）とF6（長さ1m）の山型パーツを表示します。</p></div><input id="show-mountains" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="transparent-mountains">山越えゾーンを透かす</label><p>山型パーツを半透明にし、通路や正解ルートを確認できます。</p></div><input id="transparent-mountains" type="checkbox" role="switch"></div>
-      <div class="setting-row toggle-row"><div><label for="show-ball-pools">ボールプールを表示</label><p>B5・B6・C5・C6にまたがる2m四方・ボールの深さ50cmのプールを表示します。</p></div><input id="show-ball-pools" type="checkbox" role="switch" checked></div>
       <div class="setting-actions"><button id="reset-view" type="button">全体表示に戻す <span aria-hidden="true">↗</span></button><p id="view-status" role="status" aria-live="polite">斜めから全体を表示しています。</p></div>
     </section>
     </div>
@@ -95,7 +93,6 @@ const loader = loadView({
       'wall-grid': 'setWallGrid', 'show-windows': 'setWindows', 'show-person': 'setPerson',
       'show-quiz': 'setQuiz', 'show-tunnels': 'setTunnels', 'transparent-tunnels': 'setTunnelTransparent',
       'show-mountains': 'setMountains', 'transparent-mountains': 'setMountainTransparent',
-      'show-ball-pools': 'setBallPools',
     } as const;
     for (const [id, setter] of Object.entries(booleanSettings)) {
       const input = element<HTMLInputElement>(id);

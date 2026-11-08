@@ -3,7 +3,7 @@ import type { MazePlan } from './types.ts';
 // 元図の黒線を1m区間に分解し、境界の2枚とD5・D6中央の2枚を追加。
 // B2・C2上辺の壁は図面上で下へ0.5m移動（上から1.5mの位置）。
 // 両端の縦壁は上側に突き出す0.5mを除き、横壁の位置から下側だけ残す。
-// B5〜C6を2m四方のプールにするため、内部のC5–C6間の横壁1mを削除。
+// C5–C6間の横壁1mはなく、B5〜C6の4区画は内部でつながる。
 export const pattern01: MazePlan = {
   "id": "pattern-01",
   "name": "パターン01",
@@ -128,15 +128,6 @@ export const pattern01: MazePlan = {
       "to": [6, 5.5],
       "width": 1,
       "height": 0.5
-    }
-  ],
-  "ballPools": [
-    {
-      "id": "b5-c6-ball-pool",
-      "name": "B5・B6・C5・C6のボールプール",
-      "from": [1, 4],
-      "to": [3, 6],
-      "depth": 0.5
     }
   ],
   "solutionVia": ["B1", "C1"],

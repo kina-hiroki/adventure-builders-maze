@@ -257,7 +257,7 @@ test('D7上辺の左半分が赤✕、右半分が青〇で、正解線は右〇
   assert.deepEqual(crossings.map(point => point[0]), [3.75]);
 });
 
-test('F5・F7と中央の壁追加・B2とC2の移動・縦壁の切り詰め・プール内部壁の削除を戻すと元の配置を再現する', () => {
+test('F5・F7と中央の壁追加・B2とC2の移動・縦壁の切り詰め・C5–C6間の開口を戻すと元の配置を再現する', () => {
   const restoredWalls = pattern01.walls.map(wall => {
     if (wall.from[1] === 1.5 && wall.to[1] === 1.5)
       return { from: [wall.from[0], 1], to: [wall.to[0], 1] };
