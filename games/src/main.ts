@@ -8,6 +8,11 @@ const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('描画先の #app が見つかりません。');
 const analysis = analyzeMaze(pattern01);
 if (analysis.route.join(' ') !== pattern01.solution.join(' ')) throw new Error('迷路データと正解ルートが一致しません。');
+const solutions = new Map([
+  ['tunnel', { name: 'トンネル経由', points: analysis.routePoints }],
+  ...(pattern01.alternativeSolutions ?? []).map(solution =>
+    [solution.id, { name: solution.name, points: analyzeMaze(pattern01, solution.via).routePoints }] as const),
+]);
 
 app.innerHTML = `
   <main class="page">
@@ -17,10 +22,10 @@ app.innerHTML = `
     </header>
     <section class="intro" aria-labelledby="page-title">
       <div><p class="eyebrow">CARDBOARD MAZE / 01</p><h1 id="page-title">パターン01<span>迷路を、立体で。</span></h1>
-      <p class="lead">平面図をもとに、ギミックに合わせた壁配置を3Dへ。視点を変えて、通路と全体の形を確かめられます。</p></div>
+      <p class="lead">平面図をもとに、ギミックに合わせた壁配置を3Dへ。視点を変えて、通路と全体の形を確かめられます。北側には幅1m・横4mの抜け道があり、トンネルを通らずA1からD1へ進めます。</p></div>
     </section>
     <dl class="specs" aria-label="迷路の仕様">
-      <div><dt>縦 × 横</dt><dd>7 <span>×</span> 7 <small>m</small></dd></div>
+      <div><dt>本体の縦 × 横</dt><dd>7 <span>×</span> 7 <small>m</small></dd></div>
       <div><dt>壁の高さ</dt><dd>1.5 <small>m</small></dd></div>
       <div><dt>壁用段ボール（幅1m原板）</dt><dd>${analysis.wallMaterials.requiredSheets} <small>枚</small></dd></div>
       <div><dt>基本区画の大きさ</dt><dd>1 <small>m ×</small> 1 <small>m</small></dd></div>
@@ -29,11 +34,12 @@ app.innerHTML = `
     <section class="viewer-card" aria-labelledby="viewer-title">
       <div class="viewer-heading"><h2 id="viewer-title">3Dプレビュー</h2><span class="viewer-legend"><i class="start-dot"></i> 入口 A7 <i class="goal-dot"></i> 出口 G7</span></div>
       <div id="maze-stage" class="maze-stage"></div>
-      <p id="navigation-help" class="navigation-help">ドラッグで回転 · ホイールで拡大 · 右ドラッグで移動<br>白い板・○×クイズ・トンネル・山越えゾーンにカーソルを合わせる・タップで説明（キーボード：迷路を選択してEnterで説明を切り替え、Escで閉じる）<span>タッチ操作：1本指で回転、2本指で拡大・移動</span></p>
+      <p id="navigation-help" class="navigation-help">ドラッグで回転 · ホイールで拡大 · 右ドラッグで移動<br>白い板・○×クイズ・トンネル・山越えゾーン・抜け道にカーソルを合わせる・タップで説明（キーボード：迷路を選択してEnterで説明を切り替え、Escで閉じる）<span>タッチ操作：1本指で回転、2本指で拡大・移動</span></p>
     </section>
     <section class="settings" aria-labelledby="settings-title">
       <div class="section-heading"><h2 id="settings-title">表示設定</h2><p>見たい角度と表示に調整できます。</p></div>
       <div class="setting-row toggle-row"><div><label for="show-solution">正解ルートを表示</label><p>床から75cmの高さに、STARTからGOALへ点滅して流れるオレンジ色の点線を表示します。</p></div><input id="show-solution" type="checkbox" role="switch"></div>
+      <div class="setting-row"><label for="solution-route">正解ルートの経路</label><select id="solution-route"></select><p>「正解ルートを表示」をオンにして、通る経路を選べます。</p></div>
       <div class="setting-row"><label for="view-mode">視点</label><select id="view-mode"><option value="angled">斜めから</option><option value="top">真上から</option><option value="side">真横から（自由回転）</option><option value="front">正面から</option><option value="right">右側から</option><option value="back">背面から</option><option value="left">左側から</option></select></div>
       <div class="setting-row"><label for="rotation">回転 <output id="rotation-value" for="rotation">45°</output></label><input id="rotation" type="range" min="0" max="359" step="1" value="45"></div>
       <div class="setting-row"><label for="zoom">拡大率 <output id="zoom-value" for="zoom">100%</output></label><input id="zoom" type="range" min="100" max="300" step="10" value="100"></div>
@@ -62,6 +68,13 @@ const retryEvents = new AbortController();
 const rotation = element<HTMLInputElement>('rotation');
 const zoom = element<HTMLInputElement>('zoom');
 const mode = element<HTMLSelectElement>('view-mode');
+const solutionRoute = element<HTMLSelectElement>('solution-route');
+for (const [id, solution] of solutions) {
+  const option = document.createElement('option');
+  option.value = id;
+  option.textContent = solution.name;
+  solutionRoute.appendChild(option);
+}
 const status = element<HTMLElement>('view-status');
 const stage = element<HTMLDivElement>('maze-stage');
 const rotationValue = element<HTMLOutputElement>('rotation-value');
@@ -98,6 +111,11 @@ const loader = loadView({
       const input = element<HTMLInputElement>(id);
       input.addEventListener('change', () => readyView[setter](input.checked), { signal: events.signal });
     }
+    bind('solution-route', 'change', () => {
+      const selected = solutions.get(solutionRoute.value)!;
+      readyView.setSolutionRoute(selected.points, selected.name);
+      status.textContent = selected.name + 'の正解ルートに切り替えました。';
+    });
     bind('view-mode', 'change', () => { readyView.setView(mode.value as ViewMode); status.textContent = `${mode.selectedOptions[0].text}の視点に切り替えました。`; });
     bind('rotation', 'input', () => readyView.setAngle(Number(rotation.value)));
     bind('zoom', 'input', () => readyView.setZoom(Number(zoom.value)));

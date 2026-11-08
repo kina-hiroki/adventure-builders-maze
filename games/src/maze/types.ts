@@ -24,6 +24,18 @@ export interface QuizWall {
   color: string;
 }
 
+export interface ExternalPassage {
+  id: string;
+  name: string;
+  from: Point; // 本体の外側に接する長方形の左上。グリッド座標。
+  to: Point; // 右下。整数座標の1m区画に分けて経路を計算する。
+}
+export interface AlternativeSolution {
+  id: string;
+  name: string;
+  via: string[];
+}
+
 export interface MazePlan {
   id: string;
   name: string;
@@ -40,6 +52,8 @@ export interface MazePlan {
   quizWalls: QuizWall[];
   tunnels?: Tunnel[];
   mountains?: Mountain[];
+  externalPassages?: ExternalPassage[];
+  alternativeSolutions?: AlternativeSolution[];
   solutionVia?: string[]; // 正解ルートが順に通る区画。省略時は入口から出口への最短経路。
   solutionCenters?: Record<string, Point>; // 広がった通路などに合わせる描画上の通過位置。
   solution: string[];

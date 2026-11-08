@@ -6,16 +6,16 @@ import { wallKey } from '../src/maze/analyzeMaze.ts';
 import { createOuterWallWindows } from '../src/maze/outerWallWindows.ts';
 import { createWindowWallGeometry } from '../src/three/createWindowWallGeometry.ts';
 
-test('正面に窓を付けず、左右・背面の21区間に1m間隔の窓を配置する', () => {
+test('正面に窓を付けず、開口を除く左右・背面の19区間に1m間隔の窓を配置する', () => {
   const windows = createOuterWallWindows(pattern01);
   const expected = [];
   for (let index = 0; index < 7; index++) {
-    expected.push(wallKey({ from: [index, 0], to: [index + 1, 0] }));
+    if (index !== 0 && index !== 3) expected.push(wallKey({ from: [index, 0], to: [index + 1, 0] }));
     expected.push(wallKey({ from: [0, index], to: [0, index + 1] }));
     expected.push(wallKey({ from: [7, index], to: [7, index + 1] }));
     assert.equal(windows.has(wallKey({ from: [index, 7], to: [index + 1, 7] })), false);
   }
-  assert.equal(windows.size, 21);
+  assert.equal(windows.size, 19);
   assert.deepEqual([...windows.keys()].sort(), expected.sort());
   assert.equal(windows.has(wallKey({ from: [1, 0], to: [1, 1] })), false);
 });

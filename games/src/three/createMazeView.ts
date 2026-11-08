@@ -52,6 +52,10 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     const mazeDescription = `${plan.name}、${plan.columns * plan.cellSize}m×${plan.rows * plan.cellSize}m、壁高${plan.wallHeight}mの迷路。入口${plan.entry}、出口${plan.exit}。`;
     const windowDescription = '正面を除く外壁に丸・正方形・ひし形の窓。';
     const personDescription = '入口の左横に身長130cmの人物。';
+    const passageDescription = (plan.externalPassages ?? []).map(passage =>
+      passage.name + '。幅' + (passage.to[1] - passage.from[1]) * plan.cellSize
+      + 'm・横' + (passage.to[0] - passage.from[0]) * plan.cellSize + 'm。A1とD1の上辺が開口。').join('');
+    let selectedRouteDescription = '選択中の正解ルートはトンネル経由。';
     const tunnelDescription = (plan.tunnels ?? []).map(tunnel =>
       `${tunnel.name}。幅${tunnel.width}m・中央高さ${tunnel.height}m。`).join('');
     const mountainDescription = (plan.mountains ?? []).map(mountain =>
@@ -71,7 +75,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     let mountainsVisible = true;
     let mountainsTransparent = false;
     function updateDescription() {
-      renderer.domElement.setAttribute('aria-label', mazeDescription
+      renderer.domElement.setAttribute('aria-label', mazeDescription + passageDescription + selectedRouteDescription
         + (tunnelsVisible ? tunnelDescription + (tunnelsTransparent ? 'トンネルは半透明。' : '') : 'トンネルは非表示。')
         + (mountainsVisible ? mountainDescription + (mountainsTransparent ? '山越えゾーンは半透明。' : '') : '山越えゾーンは非表示。')
         + (windowsVisible ? windowDescription : '窓なし。')
@@ -109,6 +113,23 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     const floor = new THREE.Mesh(box(width + 0.2, 0.12, depth + 0.2), floorMaterial);
     floor.position.y = -0.065;
     scene.add(floor);
+
+    const passages = new THREE.Group();
+    passages.name = 'external-passages';
+    scene.add(passages);
+    for (const passage of plan.externalPassages ?? []) {
+      const [x1, z1] = passage.from;
+      const [x2, z2] = passage.to;
+      const mesh = new THREE.Mesh(box((x2 - x1) * plan.cellSize, 0.12, (z2 - z1) * plan.cellSize),
+        new THREE.MeshStandardMaterial({ color: '#dcebdd', roughness: 1 }));
+      mesh.name = passage.id;
+      // 本体床の余白との重なりでちらつかないよう、上面を1mmだけ上げる。
+      mesh.position.copy(world((x1 + x2) / 2, -0.064, (z1 + z2) / 2));
+      const boundary = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry),
+        new THREE.LineBasicMaterial({ color: '#668a72' }));
+      mesh.add(boundary);
+      passages.add(mesh);
+    }
 
     const gridPoints: THREE.Vector3[] = [];
     for (let i = 0; i <= plan.columns; i++) gridPoints.push(world(i, 0.004, 0), world(i, 0.004, plan.rows));
@@ -274,6 +295,12 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
         scene.add(tag);
       }
     }
+    for (const passage of plan.externalPassages ?? []) {
+      const tag = label('抜け道', '#356a48', 1.45, true);
+      tag.position.copy(world((passage.from[0] + passage.to[0]) / 2, 0.012,
+        passage.from[1] + 0.24));
+      scene.add(tag);
+    }
     const quizWalls = new THREE.Group();
     quizWalls.name = 'quiz-walls';
     scene.add(quizWalls);
@@ -311,10 +338,10 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     const solution = new THREE.Group();
     solution.name = 'solution';
     const solutionHeight = 0.75; // 床から75cmの高さにそろえる。
-    const routePoints = [world(0.5, solutionHeight, 7.35),
-      ...solutionPoints.map(([x, z]) => world(x, solutionHeight, z)),
-      world(6.5, solutionHeight, 7.35)];
-    const routeGeometry = new LineGeometry().setPositions(routePoints.flatMap(point => point.toArray()));
+    const routePositions = (points: readonly Point[]) => [world(0.5, solutionHeight, 7.35),
+      ...points.map(([x, z]) => world(x, solutionHeight, z)),
+      world(6.5, solutionHeight, 7.35)].flatMap(point => point.toArray());
+    const routeGeometry = new LineGeometry().setPositions(routePositions(solutionPoints));
     const route = new Line2(routeGeometry, new LineMaterial({ color: '#e88128',
       worldUnits: true, linewidth: 0.04, dashed: true, dashSize: 0.22, gapSize: 0.12,
       alphaToCoverage: true }));
@@ -360,7 +387,23 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     dimension(world(-0.75, 0.02, 0), world(-0.75, 0.02, 7), '7 m', new THREE.Vector3(-0.26, 0.05, 0));
     dimension(world(7.4, 0, 6.5), world(7.4, h, 6.5), '1.5 m', new THREE.Vector3(0.42, 0.1, 0));
 
+    for (const passage of plan.externalPassages ?? []) {
+      const [x1, z1] = passage.from;
+      const [x2, z2] = passage.to;
+      dimension(world(x1, 0.02, z1 - 0.35), world(x2, 0.02, z1 - 0.35),
+        (x2 - x1) * plan.cellSize + ' m', new THREE.Vector3(0, 0, -0.22));
+      dimension(world(x2 + 0.35, 0.02, z1), world(x2 + 0.35, 0.02, z2),
+        (z2 - z1) * plan.cellSize + ' m', new THREE.Vector3(0.5, 0.02, 0));
+    }
+
     const partTooltip = attachPartTooltip(container, renderer.domElement, scene, camera, [
+      ...passages.children.map((part, index) => {
+        const passage = plan.externalPassages![index];
+        return { part, id: passage.id + '-tooltip',
+          size: '幅 ' + (passage.to[1] - passage.from[1]) * plan.cellSize + ' m × 横 '
+            + (passage.to[0] - passage.from[0]) * plan.cellSize + ' m',
+          description: passage.name + '。A1から北側へ出て、トンネルを通らずD1へ戻ります。' };
+      }),
       { part: frontBoard, id: 'front-board-tooltip', size: '高さ 1.5 m × 幅 5 m',
         description: '子供たちに絵を書いてもらった段ボールを配置' },
       ...quizWalls.children.map((part, index) => ({ part, id: `quiz-wall-tooltip-${index}`,
@@ -457,6 +500,15 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       setAngle(value: number) { angle = value; updatePosition(); },
       setZoom(value: number) { camera.zoom = value / 100; camera.updateProjectionMatrix(); controls.update(); changed(); },
       setSolution(value: boolean) { solution.visible = value; solutionAnimation.setVisible(value); render(); },
+      setSolutionRoute(points: readonly Point[], name: string) {
+        const previousGeometry = route.geometry;
+        route.geometry = new LineGeometry().setPositions(routePositions(points));
+        route.computeLineDistances();
+        previousGeometry.dispose();
+        selectedRouteDescription = '選択中の正解ルートは' + name + '。';
+        updateDescription();
+        render();
+      },
       setWindows(value: boolean) {
         windowedWalls.visible = value;
         solidWindowWalls.visible = !value;

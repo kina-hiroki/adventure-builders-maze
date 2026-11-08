@@ -75,15 +75,17 @@ test('トンネルの両端が開き、床上75cmの正解ルート全体がト�
     const analysis = analyzeMaze(pattern01);
     const baseline = analyzeMaze({ ...pattern01, tunnels: undefined });
     assert.deepEqual(analysis.route, baseline.route);
-    assert.equal(pattern01.walls.length, 66);
-    for (let i = 1; i < analysis.routePoints.length; i++) {
-      const [ax, az] = analysis.routePoints[i - 1];
-      const [bx, bz] = analysis.routePoints[i];
-      const start = new THREE.Vector3(ax - 3.5, 0.75, az - 3.5);
-      const end = new THREE.Vector3(bx - 3.5, 0.75, bz - 3.5);
-      const direction = end.clone().sub(start);
-      const distance = direction.length();
-      assert.equal(meshHits(group, start, direction.normalize(), distance).length, 0, `正解ルート区間 ${i}`);
+    assert.equal(pattern01.walls.length, 64);
+    for (const points of [analysis.routePoints, analyzeMaze(pattern01, pattern01.alternativeSolutions[0].via).routePoints]) {
+      for (let i = 1; i < points.length; i++) {
+        const [ax, az] = points[i - 1];
+        const [bx, bz] = points[i];
+        const start = new THREE.Vector3(ax - 3.5, 0.75, az - 3.5);
+        const end = new THREE.Vector3(bx - 3.5, 0.75, bz - 3.5);
+        const direction = end.clone().sub(start);
+        const distance = direction.length();
+        assert.equal(meshHits(group, start, direction.normalize(), distance).length, 0, `正解ルート区間 ${i}`);
+      }
     }
   });
 });

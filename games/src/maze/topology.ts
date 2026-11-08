@@ -27,6 +27,27 @@ export function createMazeCells(plan: MazePlan): MazeCell[] {
       }
     }
   }
+  for (const passage of plan.externalPassages ?? []) {
+    const [x1, z1] = passage.from;
+    const [x2, z2] = passage.to;
+    const touchesNorthOrSouth = (z2 === 0 || z1 === plan.rows)
+      && Math.min(x2, plan.columns) > Math.max(x1, 0);
+    const touchesWestOrEast = (x2 === 0 || x1 === plan.columns)
+      && Math.min(z2, plan.rows) > Math.max(z1, 0);
+    if (!passage.id || ![x1, z1, x2, z2].every(Number.isInteger)
+      || x1 >= x2 || z1 >= z2 || !(touchesNorthOrSouth || touchesWestOrEast))
+      throw new Error('抜け道の配置・寸法が不正です。');
+    for (let z = z1; z < z2; z++) {
+      for (let x = x1; x < x2; x++) {
+        const id = passage.id + '-' + ((z - z1) * (x2 - x1) + x - x1 + 1);
+        if (cells.some(cell => cell.id === id
+          || (Math.min(cell.to[0], x + 1) > Math.max(cell.from[0], x)
+            && Math.min(cell.to[1], z + 1) > Math.max(cell.from[1], z))))
+          throw new Error('抜け道の区画が重複しています。');
+        cells.push({ id, from: [x, z], to: [x + 1, z + 1] });
+      }
+    }
+  }
   return cells;
 }
 

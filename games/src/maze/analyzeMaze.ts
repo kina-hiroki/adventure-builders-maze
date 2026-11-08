@@ -14,7 +14,7 @@ export function wallKey(wall: Wall): string {
   return [wall.from.join(','), wall.to.join(',')].sort().join(':');
 }
 
-export function analyzeMaze(plan: MazePlan) {
+export function analyzeMaze(plan: MazePlan, via: readonly string[] = plan.solutionVia ?? []) {
   const keys = new Set<string>();
   for (const wall of plan.walls) {
     const [x1, z1] = wall.from;
@@ -59,7 +59,7 @@ export function analyzeMaze(plan: MazePlan) {
   if (!previous.has(plan.exit)) throw new Error('入口から出口に到達できません。');
   const route: string[] = [];
   let start = plan.entry;
-  for (const target of [...(plan.solutionVia ?? []), plan.exit]) {
+  for (const target of [...via, plan.exit]) {
     if (!graph.has(target)) throw new Error(`正解ルートの経由区画が不正です: ${target}`);
     const paths = start === plan.entry ? previous : searchFrom(start);
     if (!paths.has(target)) throw new Error(`正解ルートの経由区画に到達できません: ${target}`);
