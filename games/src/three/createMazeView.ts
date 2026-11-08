@@ -22,7 +22,7 @@ import { createWindowOutlineGeometry, createWindowWallGeometry } from './createW
 export type ViewMode = 'angled' | 'top' | 'side' | 'front' | 'right' | 'back' | 'left';
 
 export function createMazeView(container: HTMLElement, plan: MazePlan,
-  solutionPoints: readonly Point[], onChange: (angle: number, zoom: number) => void) {
+  solutionPaths: readonly (readonly Point[])[], onChange: (angle: number, zoom: number) => void) {
   return withCleanup(scope => {
     const owned = new Set<SceneResource>();
     const boxes = new Map<string, THREE.BoxGeometry>();
@@ -55,7 +55,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     const passageDescription = (plan.externalPassages ?? []).map(passage =>
       passage.name + '。幅' + (passage.to[1] - passage.from[1]) * plan.cellSize
       + 'm・横' + (passage.to[0] - passage.from[0]) * plan.cellSize + 'm。A1とD1の上辺が開口。').join('');
-    let selectedRouteDescription = '選択中の正解ルートはトンネル経由。';
+    let selectedRouteDescription = '選択中の正解ルートは両方（トンネル・抜け道）。';
     const tunnelDescription = (plan.tunnels ?? []).map(tunnel =>
       `${tunnel.name}。幅${tunnel.width}m・中央高さ${tunnel.height}m。`).join('');
     const mountainDescription = (plan.mountains ?? []).map(mountain =>
@@ -338,17 +338,23 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     const solution = new THREE.Group();
     solution.name = 'solution';
     const solutionHeight = 0.75; // 床から75cmの高さにそろえる。
-    const routePositions = (points: readonly Point[]) => [world(0.5, solutionHeight, 7.35),
-      ...points.map(([x, z]) => world(x, solutionHeight, z)),
-      world(6.5, solutionHeight, 7.35)].flatMap(point => point.toArray());
-    const routeGeometry = new LineGeometry().setPositions(routePositions(solutionPoints));
-    const route = new Line2(routeGeometry, new LineMaterial({ color: '#e88128',
+    const routeMaterial = new LineMaterial({ color: '#e88128',
       worldUnits: true, linewidth: 0.04, dashed: true, dashSize: 0.22, gapSize: 0.12,
-      alphaToCoverage: true }));
-    route.computeLineDistances();
-    solution.add(route);
+      alphaToCoverage: true });
+    owned.add(routeMaterial);
     solution.visible = false;
     scene.add(solution);
+    function replaceSolutionPaths(paths: readonly (readonly Point[])[]) {
+      for (const line of solution.children) (line as Line2).geometry.dispose();
+      solution.clear();
+      for (const points of paths) {
+        const positions = points.flatMap(([x, z]) => world(x, solutionHeight, z).toArray());
+        const line = new Line2(new LineGeometry().setPositions(positions), routeMaterial);
+        solution.add(line);
+        line.computeLineDistances();
+      }
+    }
+    replaceSolutionPaths(solutionPaths);
 
     for (const [x, color, text] of [[0, '#25836b', 'START'], [6, '#bf584b', 'GOAL']] as const) {
       const marker = new THREE.Mesh(plane(0.86, 0.86),
@@ -432,7 +438,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     let lastHeight = 0;
     let view: ViewMode = 'angled';
     let angle = 45;
-    const solutionAnimation = animateSolutionRoute(route.material, render);
+    const solutionAnimation = animateSolutionRoute(routeMaterial, render);
     scope.defer(solutionAnimation.dispose);
     scope.defer(() => window.cancelAnimationFrame(resizeFrame));
     function resize() {
@@ -500,11 +506,8 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
       setAngle(value: number) { angle = value; updatePosition(); },
       setZoom(value: number) { camera.zoom = value / 100; camera.updateProjectionMatrix(); controls.update(); changed(); },
       setSolution(value: boolean) { solution.visible = value; solutionAnimation.setVisible(value); render(); },
-      setSolutionRoute(points: readonly Point[], name: string) {
-        const previousGeometry = route.geometry;
-        route.geometry = new LineGeometry().setPositions(routePositions(points));
-        route.computeLineDistances();
-        previousGeometry.dispose();
+      setSolutionRoute(paths: readonly (readonly Point[])[], name: string) {
+        replaceSolutionPaths(paths);
         selectedRouteDescription = '選択中の正解ルートは' + name + '。';
         updateDescription();
         render();

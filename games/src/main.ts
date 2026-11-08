@@ -1,6 +1,7 @@
 import './style.css';
 import { pattern01 } from './maze/pattern01.ts';
 import { analyzeMaze } from './maze/analyzeMaze.ts';
+import { createSolutionOptions } from './maze/createSolutionOptions.ts';
 import { loadView } from './loadView.ts';
 import type { ViewMode } from './three/createMazeView.ts';
 
@@ -8,11 +9,7 @@ const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('描画先の #app が見つかりません。');
 const analysis = analyzeMaze(pattern01);
 if (analysis.route.join(' ') !== pattern01.solution.join(' ')) throw new Error('迷路データと正解ルートが一致しません。');
-const solutions = new Map([
-  ['tunnel', { name: 'トンネル経由', points: analysis.routePoints }],
-  ...(pattern01.alternativeSolutions ?? []).map(solution =>
-    [solution.id, { name: solution.name, points: analyzeMaze(pattern01, solution.via).routePoints }] as const),
-]);
+const solutions = createSolutionOptions(pattern01, analysis);
 
 app.innerHTML = `
   <main class="page">
@@ -39,7 +36,7 @@ app.innerHTML = `
     <section class="settings" aria-labelledby="settings-title">
       <div class="section-heading"><h2 id="settings-title">表示設定</h2><p>見たい角度と表示に調整できます。</p></div>
       <div class="setting-row toggle-row"><div><label for="show-solution">正解ルートを表示</label><p>床から75cmの高さに、STARTからGOALへ点滅して流れるオレンジ色の点線を表示します。</p></div><input id="show-solution" type="checkbox" role="switch"></div>
-      <div class="setting-row"><label for="solution-route">正解ルートの経路</label><select id="solution-route"></select><p>「正解ルートを表示」をオンにして、通る経路を選べます。</p></div>
+      <div class="setting-row"><label for="solution-route">正解ルートの経路</label><select id="solution-route"></select><p>初期選択は両方です。「正解ルートを表示」をオンにして、表示する経路を選べます。</p></div>
       <div class="setting-row"><label for="view-mode">視点</label><select id="view-mode"><option value="angled">斜めから</option><option value="top">真上から</option><option value="side">真横から（自由回転）</option><option value="front">正面から</option><option value="right">右側から</option><option value="back">背面から</option><option value="left">左側から</option></select></div>
       <div class="setting-row"><label for="rotation">回転 <output id="rotation-value" for="rotation">45°</output></label><input id="rotation" type="range" min="0" max="359" step="1" value="45"></div>
       <div class="setting-row"><label for="zoom">拡大率 <output id="zoom-value" for="zoom">100%</output></label><input id="zoom" type="range" min="100" max="300" step="10" value="100"></div>
@@ -91,7 +88,7 @@ const loader = loadView({
   load: () => import('./three/createMazeView.ts'),
   create: ({ createMazeView }) => {
     stage.replaceChildren();
-    return createMazeView(stage, pattern01, analysis.routePoints, (angle, percent) => {
+    return createMazeView(stage, pattern01, solutions.get('both')!.paths, (angle, percent) => {
       rotation.value = String(angle);
       zoom.value = String(percent);
       rotationValue.value = `${angle}°`;
@@ -113,7 +110,7 @@ const loader = loadView({
     }
     bind('solution-route', 'change', () => {
       const selected = solutions.get(solutionRoute.value)!;
-      readyView.setSolutionRoute(selected.points, selected.name);
+      readyView.setSolutionRoute(selected.paths, selected.name);
       status.textContent = selected.name + 'の正解ルートに切り替えました。';
     });
     bind('view-mode', 'change', () => { readyView.setView(mode.value as ViewMode); status.textContent = `${mode.selectedOptions[0].text}の視点に切り替えました。`; });
