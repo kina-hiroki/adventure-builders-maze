@@ -54,7 +54,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     const personDescription = '入口の左横に身長130cmの人物。';
     const passageDescription = (plan.externalPassages ?? []).map(passage =>
       passage.name + '。幅' + (passage.to[1] - passage.from[1]) * plan.cellSize
-      + 'm・横' + (passage.to[0] - passage.from[0]) * plan.cellSize + 'm。A1とD1の上辺が開口。').join('');
+      + 'm・横' + (passage.to[0] - passage.from[0]) * plan.cellSize + 'm。A1とD1の上辺が開口。大人用通路。トンネルを通らない場合はこの抜け道に誘導する。').join('');
     let selectedRouteDescription = '選択中の正解ルートは両方（トンネル・抜け道）。';
     const tunnelDescription = (plan.tunnels ?? []).map(tunnel =>
       `${tunnel.name}。幅${tunnel.width}m・中央高さ${tunnel.height}m。`).join('');
@@ -408,7 +408,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
         return { part, id: passage.id + '-tooltip',
           size: '幅 ' + (passage.to[1] - passage.from[1]) * plan.cellSize + ' m × 横 '
             + (passage.to[0] - passage.from[0]) * plan.cellSize + ' m',
-          description: passage.name + '。A1から北側へ出て、トンネルを通らずD1へ戻ります。' };
+          description: passage.name + '。A1から北側へ出て、トンネルを通らずD1へ戻ります。大人用通路。トンネルを通らない場合はこの抜け道に誘導する。' };
       }),
       { part: frontBoard, id: 'front-board-tooltip', size: '高さ 1.5 m × 幅 5 m',
         description: '子供たちに絵を書いてもらった段ボールを配置' },
