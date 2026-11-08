@@ -44,8 +44,7 @@ app.innerHTML = `
       <div class="setting-row toggle-row"><div><label for="show-windows">外壁の窓を表示</label><p>正面以外の3面を、窓あり／窓なしに切り替えます。</p></div><input id="show-windows" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-person">人物を表示</label><p>入口の左横に身長130cmの人物を表示し、大きさを比較できます。</p></div><input id="show-person" type="checkbox" role="switch" checked></div>
       <div class="setting-row toggle-row"><div><label for="show-quiz">○×クイズを表示</label><p>赤✕・青〇の透かし壁を表示します。</p></div><input id="show-quiz" type="checkbox" role="switch" checked></div>
-      <div class="setting-row toggle-row"><div><label for="show-tunnels">トンネルを表示</label><p>B1〜C1の半円型トンネルを表示します。</p></div><input id="show-tunnels" type="checkbox" role="switch" checked></div>
-      <div class="setting-row toggle-row"><div><label for="transparent-tunnels">トンネルを透かす</label><p>天井と側壁を透かし、トンネル内の通路や正解ルートを確認できます。</p></div><input id="transparent-tunnels" type="checkbox" role="switch"></div>
+      <div class="setting-row"><label for="tunnel-display">トンネル</label><select id="tunnel-display"><option value="on">表示ON</option><option value="off">表示OFF</option><option value="transparent">透かし</option></select><p>B1〜C1の半円型トンネルを切り替えます。「透かし」は天井と側壁を半透明で表示します。</p></div>
       <div class="setting-row"><label for="mountain-display">山越えゾーン</label><select id="mountain-display"><option value="on">表示ON</option><option value="off">表示OFF</option><option value="transparent">透かし</option></select><p>A5〜A6（長さ2m）とF6（長さ1m）の山型パーツを切り替えます。「透かし」は半透明で表示します。</p></div>
       <div class="setting-actions"><button id="reset-view" type="button">全体表示に戻す <span aria-hidden="true">↗</span></button><p id="view-status" role="status" aria-live="polite">斜めから全体を表示しています。</p></div>
     </section>
@@ -99,12 +98,18 @@ const loader = loadView({
     const booleanSettings = {
       'show-solution': 'setSolution', 'transparent-walls': 'setTransparent',
       'show-windows': 'setWindows', 'show-person': 'setPerson',
-      'show-quiz': 'setQuiz', 'show-tunnels': 'setTunnels', 'transparent-tunnels': 'setTunnelTransparent',
+      'show-quiz': 'setQuiz',
     } as const;
     for (const [id, setter] of Object.entries(booleanSettings)) {
       const input = element<HTMLInputElement>(id);
       input.addEventListener('change', () => readyView[setter](input.checked), { signal: events.signal });
     }
+    bind('tunnel-display', 'change', () => {
+      const selected = element<HTMLSelectElement>('tunnel-display');
+      readyView.setTunnelTransparent(selected.value === 'transparent');
+      readyView.setTunnels(selected.value !== 'off');
+      status.textContent = 'トンネルを「' + selected.selectedOptions[0].text + '」に切り替えました。';
+    });
     bind('mountain-display', 'change', () => {
       const selected = element<HTMLSelectElement>('mountain-display');
       readyView.setMountainTransparent(selected.value === 'transparent');
