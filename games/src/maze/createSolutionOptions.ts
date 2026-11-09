@@ -60,18 +60,15 @@ export function createSolutionOptions(plan: MazePlan, primary = analyzeMaze(plan
   };
   const primaryPath = fullPath(primary.routePoints);
   const combined: Point[][] = [primaryPath];
-  const tunnelAndBypass: Point[][] = [primaryPath];
   for (const alternative of alternatives) {
     // 描画座標で共通部分を切り出し、セル途中の正しい分岐点へ接続する。
     const branch = branchPoints(primaryPath, fullPath(alternative.analysis.routePoints));
     if (branch.length > 1) {
       combined.push(branch);
-      if (alternative.id === 'bypass') tunnelAndBypass.push(branch);
     }
   }
   return new Map<string, { name: string; paths: readonly (readonly Point[])[] }>([
     ['all', { name: `すべて（${alternatives.length + 1}経路）`, paths: combined }],
-    ['both', { name: '両方（トンネル・抜け道）', paths: tunnelAndBypass }],
     ['tunnel', { name: 'トンネル経由', paths: [primaryPath] }],
     ...alternatives.map(solution => [solution.id, {
       name: solution.name, paths: [fullPath(solution.analysis.routePoints)],

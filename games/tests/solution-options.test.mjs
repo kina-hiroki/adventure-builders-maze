@@ -4,10 +4,9 @@ import { pattern01 } from '../src/maze/pattern01.ts';
 import { analyzeMaze } from '../src/maze/analyzeMaze.ts';
 import { createSolutionOptions } from '../src/maze/createSolutionOptions.ts';
 
-test('初期選択はすべてで、2経路表示と個別表示の完全な正解ルートも選べる', () => {
+test('初期選択はすべてで、各経路の個別表示も選べる', () => {
   const options = createSolutionOptions(pattern01);
-  assert.deepEqual([...options.keys()], ['all', 'both', 'tunnel', 'bypass', 'via-e3']);
-  assert.equal(options.get('both').paths.length, 2);
+  assert.deepEqual([...options.keys()], ['all', 'tunnel', 'bypass', 'via-e3']);
   assert.equal(options.get('all').paths.length, 3);
   for (const [id, via] of [['tunnel', pattern01.solutionVia], ...pattern01.alternativeSolutions.map(solution => [solution.id, solution.via])]) {
     const [path] = options.get(id).paths;
@@ -15,9 +14,9 @@ test('初期選択はすべてで、2経路表示と個別表示の完全な正�
   }
 });
 
-test('両方表示は共通区間を重ねず、A1からD1までの抜け道を追加する', () => {
+test('すべて表示には共通区間を重ねずA1からD1までの抜け道が含まれる', () => {
   const options = createSolutionOptions(pattern01);
-  const [primary, branch] = options.get('both').paths;
+  const [primary, branch] = options.get('all').paths;
   assert.deepEqual(primary, options.get('tunnel').paths[0]);
   assert.deepEqual(branch, [[0.5, 0.75], [0.5, -0.5], [3.5, -0.5], [3.5, 0.75]]);
   const segments = path => path.slice(1).map((end, i) => [path[i], end]);
