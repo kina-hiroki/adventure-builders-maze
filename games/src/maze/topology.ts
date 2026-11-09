@@ -136,16 +136,17 @@ export function createRoutePoints(plan: MazePlan, route: string[], mazeCells = c
     const from = entry?.point ?? centers[i];
     const to = exit?.point ?? centers[i];
     add(from);
-    if (from[0] !== to[0] && from[1] !== to[1]) {
+    if (entry && exit && entry.vertical === exit.vertical) {
+      // 同じ辺の別開口へ折り返すときも区画の内側を通し、仕切り壁の端を横切らない。
+      if (entry.vertical) {
+        add([centers[i][0], from[1]]); add([centers[i][0], to[1]]);
+      } else {
+        add([from[0], centers[i][1]]); add([to[0], centers[i][1]]);
+      }
+    } else if (from[0] !== to[0] && from[1] !== to[1]) {
       // 隣り合う辺へ曲がるときは、開口同士を1つの曲がり角で結ぶ。
       // セル中心へ寄り道するとD3のような半幅開口で余分な折り返しができる。
-      if (entry && exit && entry.vertical === exit.vertical) {
-        if (entry.vertical) {
-          add([centers[i][0], from[1]]); add([centers[i][0], to[1]]);
-        } else {
-          add([from[0], centers[i][1]]); add([to[0], centers[i][1]]);
-        }
-      } else if (entry ? entry.vertical : !exit!.vertical) {
+      if (entry ? entry.vertical : !exit!.vertical) {
         add([to[0], from[1]]);
       } else {
         add([from[0], to[1]]);

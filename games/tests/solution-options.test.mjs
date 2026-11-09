@@ -6,8 +6,8 @@ import { createSolutionOptions } from '../src/maze/createSolutionOptions.ts';
 
 test('初期選択はすべてで、各経路の個別表示も選べる', () => {
   const options = createSolutionOptions(pattern01);
-  assert.deepEqual([...options.keys()], ['all', 'tunnel', 'bypass', 'via-e3']);
-  assert.equal(options.get('all').paths.length, 3);
+  assert.deepEqual([...options.keys()], ['all', 'tunnel', 'bypass', 'via-e3', 'via-d4-d7']);
+  assert.equal(options.get('all').paths.length, 4);
   for (const [id, via] of [['tunnel', pattern01.solutionVia], ...pattern01.alternativeSolutions.map(solution => [solution.id, solution.via])]) {
     const [path] = options.get(id).paths;
     assert.deepEqual(path, [[0.5, 7.35], ...analyzeMaze(pattern01, via).routePoints, [6.5, 7.35]]);
@@ -49,7 +49,7 @@ test('E3→F3→F2経由はD3で分岐してF1へ合流し、D7の〇側を通�
     [[0.5, 7.35], ...analysis.routePoints, [6.5, 7.35]]);
 });
 
-test('3経路同時表示は共通部分を二重描画せず、すべてSTARTからGOAL方向へ進む', () => {
+test('4経路同時表示は共通部分を二重描画せず、すべてSTARTからGOAL方向へ進む', () => {
   const paths = createSolutionOptions(pattern01).get('all').paths;
   const segments = path => path.slice(1).map((end, i) => [path[i], end]);
   for (let i = 0; i < paths.length; i++) for (let j = i + 1; j < paths.length; j++) {
@@ -64,6 +64,21 @@ test('3経路同時表示は共通部分を二重描画せず、すべてSTART�
   }
   assert.deepEqual(paths[2][0], [3.75, 2.5]);
   assert.deepEqual(paths[2].at(-1), [5.5, 0.5]);
+});
+
+test('D4→D5→D6→D7経由は左側を南下し、壁の端を避けて右側へ合流する', () => {
+  const specification = pattern01.alternativeSolutions.find(solution => solution.id === 'via-d4-d7');
+  const { route, routePoints } = analyzeMaze(pattern01, specification.via);
+  const index = route.indexOf('D4W');
+  assert.deepEqual(route.slice(index, index + 7), ['D4W', 'D5W', 'D6W', 'D7', 'D6E', 'D5E', 'E5']);
+  assert.equal(new Set(route).size, route.length, '同じ区画へ逆戻りしない');
+  assert.ok(!route.includes('B7') && !route.includes('C7'));
+  const turn = routePoints.findIndex(([x, z]) => x === 3.25 && z === 6.5);
+  assert.ok(turn > 0);
+  assert.deepEqual(routePoints.slice(turn, turn + 2), [[3.25, 6.5], [3.75, 6.5]]);
+  const options = createSolutionOptions(pattern01);
+  assert.deepEqual(options.get('via-d4-d7').paths[0], [[0.5, 7.35], ...routePoints, [6.5, 7.35]]);
+  assert.deepEqual(options.get('all').paths[3], [[2.5, 3.5], [3.25, 3.5], [3.25, 6.5]]);
 });
 
 test('D4からD3→E3へ曲がる線に、左へ戻る段差や共通経路との切れ目がない', () => {

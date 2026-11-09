@@ -81,13 +81,13 @@ test('本体61区画と抜け道4区画がつながり、循環7・分岐16・�
   assert.deepEqual(pattern01.solution, expectedRoute);
 });
 
-test('B7上辺の1m壁をC7上辺へ移し、全正解ルートがB6→B7→C7を通る', () => {
+test('B7上辺の1m壁をC7上辺へ移し、B7経由の正解ルートがB6→B7→C7を通る', () => {
   const { graph } = analyzeMaze(pattern01);
   assert.ok(graph.get('B6').includes('B7'));
   assert.ok(graph.get('B7').includes('C7'));
   assert.ok(!graph.get('C6').includes('C7'));
   assert.throws(() => createRoutePoints(pattern01, ['C6', 'C7']), /壁/);
-  for (const via of [pattern01.solutionVia, ...pattern01.alternativeSolutions.map(solution => solution.via)]) {
+  for (const via of [pattern01.solutionVia, ...pattern01.alternativeSolutions.map(solution => solution.via)].filter(via => via.includes('B7'))) {
     const { route } = analyzeMaze(pattern01, via);
     const index = route.indexOf('B6');
     assert.deepEqual(route.slice(index, index + 3), ['B6', 'B7', 'C7']);
@@ -324,7 +324,7 @@ test('D5上辺の左50cmを開け、E5上辺は左50cmの壁と右50cmの通路�
   assert.throws(() => createRoutePoints(pattern01, ['D4E', 'D5E']), /壁/);
   for (const via of [pattern01.solutionVia, ...pattern01.alternativeSolutions.map(solution => solution.via)]) {
     const { route, routePoints } = analyzeMaze(pattern01, via);
-    assert.ok(route.includes('C7') && !route.includes('D5W'), '既存のクイズの〇側を通る');
+    assert.equal(route[route.indexOf('D7') + 1], 'D6E', '既存のクイズの〇側を通る');
     assert.ok(routePoints.some(([x, z], i) => x === 4.75 && z > 4
       && routePoints[i + 1]?.[0] === 4.75 && routePoints[i + 1]?.[1] < 4));
   }
