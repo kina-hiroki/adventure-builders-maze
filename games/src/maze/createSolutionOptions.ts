@@ -13,6 +13,7 @@ export function createSolutionOptions(plan: MazePlan, primary = analyzeMaze(plan
   };
   const primaryPath = fullPath(primary.routePoints);
   const combined: Point[][] = [primaryPath];
+  const tunnelAndBypass: Point[][] = [primaryPath];
   for (const alternative of alternatives) {
     const route = alternative.analysis.route;
     let first = 0;
@@ -25,10 +26,15 @@ export function createSolutionOptions(plan: MazePlan, primary = analyzeMaze(plan
       primaryLast--;
     }
     // 共通の入口・出口側を重ねず、分岐から合流までの経路だけを足す。
-    if (first < last) combined.push(createRoutePoints(plan, route.slice(first, last + 1)));
+    if (first < last) {
+      const branch = createRoutePoints(plan, route.slice(first, last + 1));
+      combined.push(branch);
+      if (alternative.id === 'bypass') tunnelAndBypass.push(branch);
+    }
   }
   return new Map<string, { name: string; paths: readonly (readonly Point[])[] }>([
-    ['both', { name: '両方（トンネル・抜け道）', paths: combined }],
+    ['both', { name: '両方（トンネル・抜け道）', paths: tunnelAndBypass }],
+    ['all', { name: `すべて（${alternatives.length + 1}経路）`, paths: combined }],
     ['tunnel', { name: 'トンネル経由', paths: [primaryPath] }],
     ...alternatives.map(solution => [solution.id, {
       name: solution.name, paths: [fullPath(solution.analysis.routePoints)],

@@ -240,7 +240,7 @@ test('本体外周は入口A7・出口G7の下辺と抜け道へ出るA1・D1の
   }
 });
 
-for (const [name, via] of [['トンネル', pattern01.solutionVia], ['抜け道', pattern01.alternativeSolutions[0].via]]) {
+for (const [name, via] of [['トンネル', pattern01.solutionVia], ...pattern01.alternativeSolutions.map(solution => [solution.name.replace(/経由$/, ''), solution.via])]) {
   test(name + '経由の各移動が隣接し、描画する線分も壁を横切らない', () => {
     const { graph, route, routePoints: points } = analyzeMaze(pattern01, via);
     for (let i = 1; i < route.length; i++) {
@@ -286,7 +286,7 @@ test('C4右辺の壁をD4中央へ50cm移し、上端を横に50cm延長してD4
     assert.equal(cell.to[0] - cell.from[0], 0.5);
     assert.equal(cell.to[1] - cell.from[1], 1);
   }
-  for (const via of [pattern01.solutionVia, pattern01.alternativeSolutions[0].via]) {
+  for (const via of [pattern01.solutionVia, ...pattern01.alternativeSolutions.map(solution => solution.via)]) {
     const { route, routePoints } = analyzeMaze(pattern01, via);
     const index = route.indexOf('E4');
     assert.deepEqual(route.slice(index, index + 3), ['E4', 'D4E', 'D3']);
@@ -308,7 +308,7 @@ test('D5上辺の左50cmを開け、E5上辺は左50cmの壁と右50cmの通路�
     [[4.5, 4.5], [4.75, 4.5], [4.75, 3.5], [4.5, 3.5]]);
   assert.deepEqual(createRoutePoints(pattern01, ['D4W', 'D5W']), [[3.25, 3.5], [3.25, 4.5]]);
   assert.throws(() => createRoutePoints(pattern01, ['D4E', 'D5E']), /壁/);
-  for (const via of [pattern01.solutionVia, pattern01.alternativeSolutions[0].via]) {
+  for (const via of [pattern01.solutionVia, ...pattern01.alternativeSolutions.map(solution => solution.via)]) {
     const { route, routePoints } = analyzeMaze(pattern01, via);
     assert.ok(route.includes('C7') && !route.includes('D5W'), '既存のクイズの〇側を通る');
     assert.ok(routePoints.some(([x, z], i) => x === 4.75 && z > 4

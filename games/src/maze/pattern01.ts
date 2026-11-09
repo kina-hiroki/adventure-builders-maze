@@ -152,7 +152,8 @@ export const pattern01: MazePlan = {
     { "id": "north-bypass", "name": "A1〜D1北側の抜け道", "from": [0, -1], "to": [4, 0] }
   ],
   "alternativeSolutions": [
-    { "id": "bypass", "name": "抜け道経由", "via": ["C7", "north-bypass-1", "north-bypass-4"] }
+    { "id": "bypass", "name": "抜け道経由", "via": ["C7", "north-bypass-1", "north-bypass-4"] },
+    { "id": "via-e3", "name": "E3→F3→F2経由", "via": ["C7", "E3", "F3", "F2"] }
   ],
   "solutionVia": ["C7", "B1", "C1"],
   "solutionCenters": {

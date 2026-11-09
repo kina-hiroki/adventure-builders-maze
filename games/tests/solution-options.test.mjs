@@ -6,9 +6,10 @@ import { createSolutionOptions } from '../src/maze/createSolutionOptions.ts';
 
 test('初期選択は両方で、個別表示の完全な正解ルートも選べる', () => {
   const options = createSolutionOptions(pattern01);
-  assert.deepEqual([...options.keys()], ['both', 'tunnel', 'bypass']);
+  assert.deepEqual([...options.keys()], ['both', 'all', 'tunnel', 'bypass', 'via-e3']);
   assert.equal(options.get('both').paths.length, 2);
-  for (const [id, via] of [['tunnel', pattern01.solutionVia], ['bypass', pattern01.alternativeSolutions[0].via]]) {
+  assert.equal(options.get('all').paths.length, 3);
+  for (const [id, via] of [['tunnel', pattern01.solutionVia], ...pattern01.alternativeSolutions.map(solution => [solution.id, solution.via])]) {
     const [path] = options.get(id).paths;
     assert.deepEqual(path, [[0.5, 7.35], ...analyzeMaze(pattern01, via).routePoints, [6.5, 7.35]]);
   }
@@ -30,4 +31,38 @@ test('両方表示は共通区間を重ねず、A1からD1までの抜け道を�
       }
     }
   }
+});
+
+test('E3→F3→F2経由はD3で分岐してF1へ合流し、D7の〇側を通る', () => {
+  const specification = pattern01.alternativeSolutions.find(solution => solution.id === 'via-e3');
+  const analysis = analyzeMaze(pattern01, specification.via);
+  const index = analysis.route.indexOf('D3');
+  assert.deepEqual(analysis.route.slice(index, index + 5), ['D3', 'E3', 'F3', 'F2', 'F1']);
+  assert.equal(analysis.route.length, 35);
+  assert.equal(new Set(analysis.route).size, analysis.route.length, '同じ区画へ逆戻りしない');
+  assert.ok(analysis.route.includes('C7') && !analysis.route.includes('D5W'));
+  assert.ok(!analysis.route.includes('A1') && !analysis.route.includes('B1'));
+  const options = createSolutionOptions(pattern01);
+  assert.deepEqual(options.get('all').paths[2], [
+    [3.5, 2.5], [3.5, 2.25], [4.5, 2.25], [4.5, 2.75], [5.5, 2.75], [5.5, 0.5],
+  ]);
+  assert.deepEqual(options.get('via-e3').paths[0],
+    [[0.5, 7.35], ...analysis.routePoints, [6.5, 7.35]]);
+});
+
+test('3経路同時表示は共通部分を二重描画せず、すべてSTARTからGOAL方向へ進む', () => {
+  const paths = createSolutionOptions(pattern01).get('all').paths;
+  const segments = path => path.slice(1).map((end, i) => [path[i], end]);
+  for (let i = 0; i < paths.length; i++) for (let j = i + 1; j < paths.length; j++) {
+    for (const [a, b] of segments(paths[i])) for (const [c, d] of segments(paths[j])) {
+      for (const fixed of [0, 1]) {
+        const along = 1 - fixed;
+        if (a[fixed] !== b[fixed] || c[fixed] !== d[fixed] || a[fixed] !== c[fixed]) continue;
+        assert.ok(Math.min(Math.max(a[along], b[along]), Math.max(c[along], d[along]))
+          <= Math.max(Math.min(a[along], b[along]), Math.min(c[along], d[along])), '共通部分を二重描画しない');
+      }
+    }
+  }
+  assert.deepEqual(paths[2][0], [3.5, 2.5]);
+  assert.deepEqual(paths[2].at(-1), [5.5, 0.5]);
 });
