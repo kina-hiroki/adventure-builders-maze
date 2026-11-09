@@ -4,7 +4,7 @@ import type { MazePlan } from './types.ts';
 // B2・C2上辺の壁は図面上で下へ0.5m移動（上から1.5mの位置）。
 // 両端の縦壁は上側に突き出す0.5mを除き、横壁の位置から下側だけ残す。
 // C5–C6間の横壁1mはなく、B5〜C6の4区画は内部でつながる。
-// B7上辺の横壁1mをC7上辺へ移動し、正解ルートはB6→B7→C7を通す。
+// B7上辺に横壁1mを配置し、C7上辺は開口する。
 // A1・D1の上辺を開け、本体北側の幅1m・横4mの抜け道へつなぐ。
 // D3–E3間の縦壁1mを撤去した後、E3左辺の下半分とF3左辺の上半分に縦50cm壁を追加。
 // C4右辺の縦壁をD4中央へ東に0.5m移動し、上端の横壁を東へ0.5m延長。
@@ -110,7 +110,7 @@ export const pattern01: MazePlan = {
     { "from": [6, 4], "to": [7, 4] },
     { "from": [4, 5], "to": [5, 5] },
     { "from": [5, 5], "to": [6, 5] },
-    { "from": [2, 6], "to": [3, 6] },
+    { "from": [1, 6], "to": [2, 6] },
     { "from": [5, 6], "to": [6, 6] },
     { "from": [6, 6], "to": [7, 6] },
     { "from": [1, 7], "to": [2, 7] },
@@ -153,11 +153,11 @@ export const pattern01: MazePlan = {
     { "id": "north-bypass", "name": "A1〜D1北側の抜け道", "from": [0, -1], "to": [4, 0] }
   ],
   "alternativeSolutions": [
-    { "id": "bypass", "name": "抜け道経由", "via": ["B7", "C7", "north-bypass-1", "north-bypass-4"] },
-    { "id": "via-e3", "name": "E3→F3→F2経由", "via": ["B7", "C7", "E3", "F3", "F2"] },
+    { "id": "bypass", "name": "抜け道経由", "via": ["C7", "north-bypass-1", "north-bypass-4"] },
+    { "id": "via-e3", "name": "E3→F3→F2経由", "via": ["C7", "E3", "F3", "F2"] },
     { "id": "via-d4-d7", "name": "D4→D5→D6→D7経由", "via": ["D4W", "D5W", "D6W", "D7", "B1", "C1"] }
   ],
-  "solutionVia": ["B7", "C7", "B1", "C1"],
+  "solutionVia": ["C7", "B1", "C1"],
   "solutionCenters": {
     "A1": [0.5, 0.75],
     "B1": [1.5, 0.75],
@@ -172,9 +172,7 @@ export const pattern01: MazePlan = {
     "B4",
     "C4",
     "C5",
-    "B5",
-    "B6",
-    "B7",
+    "C6",
     "C7",
     "D7",
     "D6E",

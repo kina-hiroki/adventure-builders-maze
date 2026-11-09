@@ -25,7 +25,7 @@ test('北側の幅1m・横4mの抜け道はA1・D1だけに接続し、B1・C1�
 
 test('抜け道経由はA1から北側の中央を通ってD1・D2へ戻り、トンネル経由も維持する', () => {
   const { route, routePoints } = analyzeMaze(pattern01, pattern01.alternativeSolutions[0].via);
-  assert.equal(route.length, 49);
+  assert.equal(route.length, 47);
   const start = route.indexOf('A1');
   assert.deepEqual(route.slice(start, start + 7), [
     'A1', 'north-bypass-1', 'north-bypass-2', 'north-bypass-3', 'north-bypass-4', 'D1', 'D2',
