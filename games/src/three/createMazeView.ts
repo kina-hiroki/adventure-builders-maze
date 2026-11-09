@@ -55,7 +55,7 @@ export function createMazeView(container: HTMLElement, plan: MazePlan,
     const passageDescription = (plan.externalPassages ?? []).map(passage =>
       passage.name + '。幅' + (passage.to[1] - passage.from[1]) * plan.cellSize
       + 'm・横' + (passage.to[0] - passage.from[0]) * plan.cellSize + 'm。A1とD1の上辺が開口。大人用通路。トンネルを通らない場合はこの抜け道に誘導する。').join('');
-    let selectedRouteDescription = '選択中の正解ルートは両方（トンネル・抜け道）。';
+    let selectedRouteDescription = `選択中の正解ルートはすべて（${1 + (plan.alternativeSolutions?.length ?? 0)}経路）。`;
     const tunnelDescription = (plan.tunnels ?? []).map(tunnel =>
       `${tunnel.name}。幅${tunnel.width}m・中央高さ${tunnel.height}m。`).join('');
     const mountainDescription = (plan.mountains ?? []).map(mountain =>

@@ -70,8 +70,8 @@ export function createSolutionOptions(plan: MazePlan, primary = analyzeMaze(plan
     }
   }
   return new Map<string, { name: string; paths: readonly (readonly Point[])[] }>([
-    ['both', { name: '両方（トンネル・抜け道）', paths: tunnelAndBypass }],
     ['all', { name: `すべて（${alternatives.length + 1}経路）`, paths: combined }],
+    ['both', { name: '両方（トンネル・抜け道）', paths: tunnelAndBypass }],
     ['tunnel', { name: 'トンネル経由', paths: [primaryPath] }],
     ...alternatives.map(solution => [solution.id, {
       name: solution.name, paths: [fullPath(solution.analysis.routePoints)],

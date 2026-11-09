@@ -36,7 +36,7 @@ app.innerHTML = `
     <section class="settings" aria-labelledby="settings-title">
       <div class="section-heading"><h2 id="settings-title">表示設定</h2><p>見たい角度と表示に調整できます。</p></div>
       <div class="setting-row toggle-row"><div><label for="show-solution">正解ルートを表示</label><p>床から75cmの高さに、STARTからGOALへ点滅して流れるオレンジ色の点線を表示します。</p></div><input id="show-solution" type="checkbox" role="switch"></div>
-      <div class="setting-row"><label for="solution-route">正解ルートの経路</label><select id="solution-route"></select><p>初期選択は「両方（トンネル・抜け道）」です。「すべて（3経路）」でE3→F3→F2経由も同時に表示できます。</p></div>
+      <div class="setting-row"><label for="solution-route">正解ルートの経路</label><select id="solution-route"></select><p>初期選択は「すべて（3経路）」です。「正解ルートを表示」をオンにすると、トンネル・抜け道・E3→F3→F2経由を同時に表示します。</p></div>
       <div class="setting-row"><label for="view-mode">視点</label><select id="view-mode"><option value="angled">斜めから</option><option value="top">真上から</option><option value="side">真横から（自由回転）</option><option value="front">正面から</option><option value="right">右側から</option><option value="back">背面から</option><option value="left">左側から</option></select></div>
       <div class="setting-row"><label for="rotation">回転 <output id="rotation-value" for="rotation">45°</output></label><input id="rotation" type="range" min="0" max="359" step="1" value="45"></div>
       <div class="setting-row"><label for="zoom">拡大率 <output id="zoom-value" for="zoom">100%</output></label><input id="zoom" type="range" min="100" max="300" step="10" value="100"></div>
@@ -85,7 +85,7 @@ const loader = loadView({
   load: () => import('./three/createMazeView.ts'),
   create: ({ createMazeView }) => {
     stage.replaceChildren();
-    return createMazeView(stage, pattern01, solutions.get('both')!.paths, (angle, percent) => {
+    return createMazeView(stage, pattern01, solutions.get('all')!.paths, (angle, percent) => {
       rotation.value = String(angle);
       zoom.value = String(percent);
       rotationValue.value = `${angle}°`;

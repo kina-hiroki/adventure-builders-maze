@@ -4,9 +4,9 @@ import { pattern01 } from '../src/maze/pattern01.ts';
 import { analyzeMaze } from '../src/maze/analyzeMaze.ts';
 import { createSolutionOptions } from '../src/maze/createSolutionOptions.ts';
 
-test('初期選択は両方で、個別表示の完全な正解ルートも選べる', () => {
+test('初期選択はすべてで、2経路表示と個別表示の完全な正解ルートも選べる', () => {
   const options = createSolutionOptions(pattern01);
-  assert.deepEqual([...options.keys()], ['both', 'all', 'tunnel', 'bypass', 'via-e3']);
+  assert.deepEqual([...options.keys()], ['all', 'both', 'tunnel', 'bypass', 'via-e3']);
   assert.equal(options.get('both').paths.length, 2);
   assert.equal(options.get('all').paths.length, 3);
   for (const [id, via] of [['tunnel', pattern01.solutionVia], ...pattern01.alternativeSolutions.map(solution => [solution.id, solution.via])]) {
