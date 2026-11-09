@@ -4,7 +4,7 @@ import { pattern01 } from '../src/maze/pattern01.ts';
 import { analyzeMaze, wallKey } from '../src/maze/analyzeMaze.ts';
 import { createMazeCells, createRoutePoints, openPassage } from '../src/maze/topology.ts';
 
-const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5 C6 C7 D7 D6E D5E E5 E4 D4E D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5NE G5NW G5NE G5SE G6 F6 E6 E7 F7N G7'.split(' ');
+const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5 B5 B6 B7 C7 D7 D6E D5E E5 E4 D4E D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5NE G5NW G5NE G5SE G6 F6 E6 E7 F7N G7'.split(' ');
 
 test('壁パネル70枚・総延長64.5m・外周24区間・内部46区間になる', () => {
   const result = analyzeMaze(pattern01);
@@ -71,14 +71,28 @@ test('F2–G2・F3–G3間に指定された追加壁があり通過できない
   }
 });
 
-test('本体61区画と抜け道4区画がつながり、循環7・分岐17・曲がり角28になる', () => {
+test('本体61区画と抜け道4区画がつながり、循環7・分岐16・曲がり角30になる', () => {
   const result = analyzeMaze(pattern01);
   assert.equal(result.connectedCells, 65);
   assert.equal(result.edges, 71);
-  assert.equal(result.branches, 17);
-  assert.equal(result.turns, 28);
+  assert.equal(result.branches, 16);
+  assert.equal(result.turns, 30);
   assert.deepEqual(result.route, expectedRoute);
   assert.deepEqual(pattern01.solution, expectedRoute);
+});
+
+test('B7上辺の1m壁をC7上辺へ移し、全正解ルートがB6→B7→C7を通る', () => {
+  const { graph } = analyzeMaze(pattern01);
+  assert.ok(graph.get('B6').includes('B7'));
+  assert.ok(graph.get('B7').includes('C7'));
+  assert.ok(!graph.get('C6').includes('C7'));
+  assert.throws(() => createRoutePoints(pattern01, ['C6', 'C7']), /壁/);
+  for (const via of [pattern01.solutionVia, ...pattern01.alternativeSolutions.map(solution => solution.via)]) {
+    const { route } = analyzeMaze(pattern01, via);
+    const index = route.indexOf('B6');
+    assert.deepEqual(route.slice(index, index + 3), ['B6', 'B7', 'C7']);
+    assert.equal(new Set(route).size, route.length, '同じ区画へ逆戻りしない');
+  }
 });
 
 test('F5の✕側はG5左下50cm角まで延び、正解側とは仕切り壁で分かれる', () => {
@@ -156,7 +170,7 @@ test('F7左辺は上半分が青〇、下半分が赤✕で、正解線が青〇
 
 test('正解線はB1・C1付近の幅1.5mの通路中央を直線で通る', () => {
   const { route, routePoints } = analyzeMaze(pattern01);
-  assert.deepEqual(pattern01.solutionVia, ['C7', 'B1', 'C1']);
+  assert.deepEqual(pattern01.solutionVia, ['B7', 'C7', 'B1', 'C1']);
   const index = route.indexOf('A2');
   assert.deepEqual(route.slice(index, index + 6), ['A2', 'A1', 'B1', 'C1', 'D1', 'D2']);
   const middle = (0 + 1.5) / 2;
@@ -345,8 +359,10 @@ test('D7上辺の左半分が赤✕、右半分が青〇で、正解線は右〇
   assert.deepEqual(crossings.map(point => point[0]), [3.75]);
 });
 
-test('F5・F7と中央の壁追加・B2とC2の移動・縦壁の切り詰め・C5–C6・D3–E3間の開口・北側の抜け道・C4右辺の移動・D5とE5の上辺変更を戻すと元の配置を再現する', () => {
+test('F5・F7と中央の壁追加・B2とC2の移動・縦壁の切り詰め・C5–C6・D3–E3間の開口・北側の抜け道・C4右辺の移動・D5とE5の上辺変更・B7上辺の移動を戻すと元の配置を再現する', () => {
   const restoredWalls = pattern01.walls.map(wall => {
+    if (wall.from[0] === 2 && wall.from[1] === 6 && wall.to[0] === 3 && wall.to[1] === 6)
+      return { from: [1, 6], to: [2, 6] };
     if (wall.from[0] === 3.5 && wall.to[0] === 3.5 && wall.from[1] === 3 && wall.to[1] === 4)
       return { from: [3, 3], to: [3, 4] };
     if (wall.from[1] === 1.5 && wall.to[1] === 1.5)
