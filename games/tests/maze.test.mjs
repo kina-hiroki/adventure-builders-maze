@@ -386,3 +386,10 @@ test('重複壁・範囲外の壁・出口に到達できない配置を検出�
   const keys = new Set(pattern01.walls.map(wallKey));
   assert.throws(() => analyzeMaze({ ...pattern01, walls: [...pattern01.walls, ...closed.filter(w => !keys.has(wallKey(w)))] }), /到達/);
 });
+
+test('D3の半幅開口へは入口と出口を直接結び、逆向きでも同じ線をたどる', () => {
+  const route = ['D4E', 'D3', 'E3', 'F3'];
+  const points = createRoutePoints(pattern01, route);
+  assert.deepEqual(points, [[3.75, 3.5], [3.75, 2.25], [4.5, 2.25], [4.5, 2.75], [5.5, 2.75], [5.5, 2.5]]);
+  assert.deepEqual(createRoutePoints(pattern01, [...route].reverse()), [...points].reverse());
+});

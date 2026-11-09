@@ -114,25 +114,44 @@ export function createRoutePoints(plan: MazePlan, route: string[], mazeCells = c
     }
     points.push(point);
   }
-  for (let i = 0; i < route.length; i++) {
-    const cell = cells.get(route[i]);
-    if (!cell) throw new Error(`正解ルートの区画が不正です: ${route[i]}`);
-    const nextCenter = center(cell);
-    if (i) {
-      const previous = cells.get(route[i - 1])!;
-      const previousCenter = center(previous);
-      const boundary = passageBetween(previous, cell);
-      const passage = boundary && openPassage(boundary, plan.walls);
-      if (!passage) throw new Error('正解ルートが壁を横切っています。');
-      if (passage.from[0] === passage.to[0]) {
-        const z = crossing(previousCenter[1], nextCenter[1], passage.from[1], passage.to[1]);
-        add([previousCenter[0], z]); add([nextCenter[0], z]);
+  const routeCells = route.map(id => {
+    const cell = cells.get(id);
+    if (!cell) throw new Error(`正解ルートの区画が不正です: ${id}`);
+    return cell;
+  });
+  const centers = routeCells.map(center);
+  const portals = routeCells.slice(1).map((cell, i) => {
+    const boundary = passageBetween(routeCells[i], cell);
+    const passage = boundary && openPassage(boundary, plan.walls);
+    if (!passage) throw new Error('正解ルートが壁を横切っています。');
+    const vertical = passage.from[0] === passage.to[0];
+    const point: Point = vertical
+      ? [passage.from[0], crossing(centers[i][1], centers[i + 1][1], passage.from[1], passage.to[1])]
+      : [crossing(centers[i][0], centers[i + 1][0], passage.from[0], passage.to[0]), passage.from[1]];
+    return { vertical, point };
+  });
+  for (let i = 0; i < routeCells.length; i++) {
+    const entry = portals[i - 1];
+    const exit = portals[i];
+    const from = entry?.point ?? centers[i];
+    const to = exit?.point ?? centers[i];
+    add(from);
+    if (from[0] !== to[0] && from[1] !== to[1]) {
+      // 隣り合う辺へ曲がるときは、開口同士を1つの曲がり角で結ぶ。
+      // セル中心へ寄り道するとD3のような半幅開口で余分な折り返しができる。
+      if (entry && exit && entry.vertical === exit.vertical) {
+        if (entry.vertical) {
+          add([centers[i][0], from[1]]); add([centers[i][0], to[1]]);
+        } else {
+          add([from[0], centers[i][1]]); add([to[0], centers[i][1]]);
+        }
+      } else if (entry ? entry.vertical : !exit!.vertical) {
+        add([to[0], from[1]]);
       } else {
-        const x = crossing(previousCenter[0], nextCenter[0], passage.from[0], passage.to[0]);
-        add([x, previousCenter[1]]); add([x, nextCenter[1]]);
+        add([from[0], to[1]]);
       }
     }
-    add(nextCenter);
+    add(to);
   }
   return points;
 }
