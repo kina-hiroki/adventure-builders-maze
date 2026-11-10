@@ -6,14 +6,14 @@ import { createMazeCells, createRoutePoints, openPassage } from '../src/maze/top
 
 const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5N C5S C6N C6S C7 D7 D6E D5E E5 E4 D4E D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5NE G5NW G5NE G5SE G6 F6 E6 E7 F7N G7'.split(' ');
 
-test('壁パネル80枚・総延長69.5m・外周24区間・内部56区間になる', () => {
+test('壁パネル81枚・総延長70m・外周24区間・内部57区間になる', () => {
   const result = analyzeMaze(pattern01);
-  assert.equal(pattern01.walls.length, 80);
-  assert.deepEqual(result.wallMaterials, { fullWidthPanels: 59, halfWidthPanels: 21, requiredSheets: 70 });
+  assert.equal(pattern01.walls.length, 81);
+  assert.deepEqual(result.wallMaterials, { fullWidthPanels: 59, halfWidthPanels: 22, requiredSheets: 70 });
   assert.equal(result.externalWalls, 24);
-  assert.equal(result.internalWalls, 56);
+  assert.equal(result.internalWalls, 57);
   assert.equal(pattern01.walls.reduce((sum, wall) => sum + Math.hypot(
-    wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), 0), 69.5);
+    wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), 0), 70);
   assert.equal(pattern01.cellSize, 1);
   assert.equal(pattern01.wallHeight, 1.5);
 });
@@ -86,6 +86,11 @@ test('C7上辺の1m壁をB7上辺へ移し、C7経由の正解ルートがC5→C
   assert.ok(!graph.get('B6W').includes('B7') && !graph.get('B6E').includes('B7'));
   assert.ok(graph.get('B7').includes('C7'));
   assert.ok(graph.get('C6S').includes('C7'));
+  assert.ok(pattern01.walls.some(wall => wallKey(wall) === wallKey({ from: [2.5, 6], to: [3, 6] })));
+  assert.deepEqual(openPassage({ from: [2, 6], to: [3, 6] }, pattern01.walls),
+    { from: [2, 6], to: [2.5, 6] });
+  assert.deepEqual(createRoutePoints(pattern01, ['C6S', 'C7']),
+    [[2.5, 5.75], [2.25, 5.75], [2.25, 6.5], [2.5, 6.5]]);
   assert.throws(() => createRoutePoints(pattern01, ['B6W', 'B7']), /壁/);
   for (const via of [pattern01.solutionVia, ...pattern01.alternativeSolutions.map(solution => solution.via)].filter(via => via.includes('C7'))) {
     const { route } = analyzeMaze(pattern01, via);

@@ -48,7 +48,7 @@ test('抜け道の開口を閉じると抜け道経由は到達できず、抜�
   const before = analyzeMaze({ ...closed, externalPassages: undefined });
   assert.equal(before.connectedCells, 65);
   assert.deepEqual(before.route, pattern01.solution);
-  assert.equal(new Set(closed.walls.map(wallKey)).size, 82);
+  assert.equal(new Set(closed.walls.map(wallKey)).size, 83);
 });
 
 test('抜け道の不正寸法・本体との重なり・離れた配置・重複区画を拒否する', () => {
