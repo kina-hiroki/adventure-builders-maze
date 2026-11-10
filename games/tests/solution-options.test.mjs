@@ -78,7 +78,7 @@ test('D4→D5→D6→D7経由は左側を南下し、壁の端を避けて右側
   assert.deepEqual(routePoints.slice(turn, turn + 2), [[3.25, 6.5], [3.75, 6.5]]);
   const options = createSolutionOptions(pattern01);
   assert.deepEqual(options.get('via-d4-d7').paths[0], [[0.5, 7.35], ...routePoints, [6.5, 7.35]]);
-  assert.deepEqual(options.get('all').paths[3], [[2.5, 3.5], [3.25, 3.5], [3.25, 6.5]]);
+  assert.deepEqual(options.get('all').paths[3], [[2.5, 3.5], [2.5, 3.25], [3.25, 3.25], [3.25, 6.5]]);
 });
 
 test('D4からD3→E3へ曲がる線に、左へ戻る段差や共通経路との切れ目がない', () => {
