@@ -37,7 +37,7 @@ test('E3→F3→F2経由はD3で分岐してF1へ合流し、D7の〇側を通�
   const analysis = analyzeMaze(pattern01, specification.via);
   const index = analysis.route.indexOf('D3');
   assert.deepEqual(analysis.route.slice(index, index + 5), ['D3', 'E3', 'F3', 'F2', 'F1']);
-  assert.equal(analysis.route.length, 35);
+  assert.equal(analysis.route.length, 37);
   assert.equal(new Set(analysis.route).size, analysis.route.length, '同じ区画へ逆戻りしない');
   assert.ok(analysis.route.includes('C7') && !analysis.route.includes('D5W'));
   assert.ok(!analysis.route.includes('A1') && !analysis.route.includes('B1'));
@@ -90,5 +90,5 @@ test('D4からD3→E3へ曲がる線に、左へ戻る段差や共通経路と�
   const [primary, , branch] = options.get('all').paths;
   assert.ok(primary.some(([x, z]) => x === branch[0][0] && z === branch[0][1]), '共通経路の曲がり角で分岐する');
   assert.deepEqual(branch.slice(0, 3), [[3.75, 2.5], [3.75, 2.25], [4.5, 2.25]]);
-  assert.equal(analyzeMaze(pattern01, pattern01.alternativeSolutions.find(solution => solution.id === 'via-e3').via).turns, 22);
+  assert.equal(analyzeMaze(pattern01, pattern01.alternativeSolutions.find(solution => solution.id === 'via-e3').via).turns, 26);
 });

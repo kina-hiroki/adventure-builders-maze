@@ -3,7 +3,7 @@ import type { MazePlan } from './types.ts';
 // 元図の黒線を1m区間に分解し、境界の2枚とD5・D6中央の2枚を追加。
 // B2・C2上辺の壁は図面上で下へ0.5m移動（上から1.5mの位置）。
 // 両端の縦壁は上側に突き出す0.5mを除き、横壁の位置から下側だけ残す。
-// C5–C6間の横壁1mはなく、B5〜C6の4区画は内部でつながる。
+// B5〜C6の旧ボールプール区画に第2案集08「長短の袋小路」を適用（50cm壁9区間、行き止まり2か所）。
 // B7上辺に横壁1mを配置し、C7上辺は開口する。
 // A1・D1の上辺を開け、本体北側の幅1m・横4mの抜け道へつなぐ。
 // D3–E3間の縦壁1mを撤去した後、E3左辺の下半分とF3左辺の上半分に縦50cm壁を追加。
@@ -23,6 +23,7 @@ export const pattern01: MazePlan = {
   "source": "段ボール迷路_パターン01_1m点線_座標入り_壁追加.pdf",
   "sourceSha256": "218ec15eaa2463fecaa4d770597afc5939f933fe72bc5feaf14b8e462256edd2",
   "addedWalls": [
+    "B5〜C6・提案08「長短の袋小路」（0.5m×9区間）",
     "F2–G2",
     "F3–G3",
     "E3左辺下半分（南北方向・0.5m）",
@@ -52,6 +53,15 @@ export const pattern01: MazePlan = {
     { "cell": "F5", "edge": "top", "span": [0.5, 1], "symbol": "〇", "color": "#2563eb" }
   ],
   "walls": [
+    { "from": [2, 4], "to": [2, 4.5] },
+    { "from": [2, 4.5], "to": [2.5, 4.5] },
+    { "from": [1.5, 4.5], "to": [1.5, 5] },
+    { "from": [1.5, 5], "to": [2, 5] },
+    { "from": [2, 5], "to": [2.5, 5] },
+    { "from": [1.5, 5], "to": [1.5, 5.5] },
+    { "from": [2, 5], "to": [2, 5.5] },
+    { "from": [2, 5.5], "to": [2.5, 5.5] },
+    { "from": [2, 5.5], "to": [2, 6] },
     { "from": [3, 3.5], "to": [3, 4] },
     { "from": [4, 2.5], "to": [4, 3] },
     { "from": [5, 2], "to": [5, 2.5] },
@@ -156,11 +166,11 @@ export const pattern01: MazePlan = {
     { "id": "north-bypass", "name": "A1〜D1北側の抜け道", "from": [0, -1], "to": [4, 0] }
   ],
   "alternativeSolutions": [
-    { "id": "bypass", "name": "抜け道経由", "via": ["C7", "north-bypass-1", "north-bypass-4"] },
-    { "id": "via-e3", "name": "E3→F3→F2経由", "via": ["C7", "E3", "F3", "F2"] },
+    { "id": "bypass", "name": "抜け道経由", "via": ["C5N", "C7", "north-bypass-1", "north-bypass-4"] },
+    { "id": "via-e3", "name": "E3→F3→F2経由", "via": ["C5N", "C7", "E3", "F3", "F2"] },
     { "id": "via-d4-d7", "name": "D4→D5→D6→D7経由", "via": ["D4W", "D5W", "D6W", "D7", "B1", "C1"] }
   ],
-  "solutionVia": ["C7", "B1", "C1"],
+  "solutionVia": ["C5N", "C7", "B1", "C1"],
   "solutionCenters": {
     "A1": [0.5, 0.75],
     "B1": [1.5, 0.75],
@@ -174,8 +184,10 @@ export const pattern01: MazePlan = {
     "A4",
     "B4",
     "C4",
-    "C5",
-    "C6",
+    "C5N",
+    "C5S",
+    "C6N",
+    "C6S",
     "C7",
     "D7",
     "D6E",

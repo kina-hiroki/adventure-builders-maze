@@ -25,7 +25,7 @@ test('北側の幅1m・横4mの抜け道はA1・D1だけに接続し、B1・C1�
 
 test('抜け道経由はA1から北側の中央を通ってD1・D2へ戻り、トンネル経由も維持する', () => {
   const { route, routePoints } = analyzeMaze(pattern01, pattern01.alternativeSolutions[0].via);
-  assert.equal(route.length, 47);
+  assert.equal(route.length, 49);
   const start = route.indexOf('A1');
   assert.deepEqual(route.slice(start, start + 7), [
     'A1', 'north-bypass-1', 'north-bypass-2', 'north-bypass-3', 'north-bypass-4', 'D1', 'D2',
@@ -46,9 +46,9 @@ test('抜け道の開口を閉じると抜け道経由は到達できず、抜�
   ] };
   assert.throws(() => analyzeMaze(closed, pattern01.alternativeSolutions[0].via), /到達できません/);
   const before = analyzeMaze({ ...closed, externalPassages: undefined });
-  assert.equal(before.connectedCells, 61);
+  assert.equal(before.connectedCells, 65);
   assert.deepEqual(before.route, pattern01.solution);
-  assert.equal(new Set(closed.walls.map(wallKey)).size, 73);
+  assert.equal(new Set(closed.walls.map(wallKey)).size, 82);
 });
 
 test('抜け道の不正寸法・本体との重なり・離れた配置・重複区画を拒否する', () => {

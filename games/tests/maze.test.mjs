@@ -4,16 +4,16 @@ import { pattern01 } from '../src/maze/pattern01.ts';
 import { analyzeMaze, wallKey } from '../src/maze/analyzeMaze.ts';
 import { createMazeCells, createRoutePoints, openPassage } from '../src/maze/topology.ts';
 
-const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5 C6 C7 D7 D6E D5E E5 E4 D4E D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5NE G5NW G5NE G5SE G6 F6 E6 E7 F7N G7'.split(' ');
+const expectedRoute = 'A7 A6 A5 A4 B4 C4 C5N C5S C6N C6S C7 D7 D6E D5E E5 E4 D4E D3 C3 C2S B2S B3 A3 A2 A1 B1 C1 D1 D2 E2 E1 F1 G1 G2 G3 G4 F4 F5NE G5NW G5NE G5SE G6 F6 E6 E7 F7N G7'.split(' ');
 
-test('壁パネル71枚・総延長65m・外周24区間・内部47区間になる', () => {
+test('壁パネル80枚・総延長69.5m・外周24区間・内部56区間になる', () => {
   const result = analyzeMaze(pattern01);
-  assert.equal(pattern01.walls.length, 71);
-  assert.deepEqual(result.wallMaterials, { fullWidthPanels: 59, halfWidthPanels: 12, requiredSheets: 65 });
+  assert.equal(pattern01.walls.length, 80);
+  assert.deepEqual(result.wallMaterials, { fullWidthPanels: 59, halfWidthPanels: 21, requiredSheets: 70 });
   assert.equal(result.externalWalls, 24);
-  assert.equal(result.internalWalls, 47);
+  assert.equal(result.internalWalls, 56);
   assert.equal(pattern01.walls.reduce((sum, wall) => sum + Math.hypot(
-    wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), 0), 65);
+    wall.to[0] - wall.from[0], wall.to[1] - wall.from[1]), 0), 69.5);
   assert.equal(pattern01.cellSize, 1);
   assert.equal(pattern01.wallHeight, 1.5);
 });
@@ -24,9 +24,9 @@ test('半幅パネル2枚は原板1枚から切り出し、奇数枚なら原板
     { from: [0, 0.5], to: [0, 1] },
     { from: [0, 1], to: [0, 1.5] },
   ];
-  assert.deepEqual(analyzeMaze({ ...pattern01, walls: walls.slice(0, 2) }).wallMaterials,
+  assert.deepEqual(analyzeMaze({ ...pattern01, solutionVia: [], walls: walls.slice(0, 2) }).wallMaterials,
     { fullWidthPanels: 0, halfWidthPanels: 2, requiredSheets: 1 });
-  assert.deepEqual(analyzeMaze({ ...pattern01, walls }).wallMaterials,
+  assert.deepEqual(analyzeMaze({ ...pattern01, solutionVia: [], walls }).wallMaterials,
     { fullWidthPanels: 0, halfWidthPanels: 3, requiredSheets: 2 });
 });
 
@@ -71,26 +71,26 @@ test('F2–G2・F3–G3間に指定された追加壁があり通過できない
   }
 });
 
-test('本体61区画と抜け道4区画がつながり、循環7・分岐17・曲がり角28になる', () => {
+test('本体65区画と抜け道4区画がつながり、循環6・分岐16・曲がり角32になる', () => {
   const result = analyzeMaze(pattern01);
-  assert.equal(result.connectedCells, 65);
-  assert.equal(result.edges, 71);
-  assert.equal(result.branches, 17);
-  assert.equal(result.turns, 28);
+  assert.equal(result.connectedCells, 69);
+  assert.equal(result.edges, 74);
+  assert.equal(result.branches, 16);
+  assert.equal(result.turns, 32);
   assert.deepEqual(result.route, expectedRoute);
   assert.deepEqual(pattern01.solution, expectedRoute);
 });
 
 test('C7上辺の1m壁をB7上辺へ移し、C7経由の正解ルートがC5→C6→C7を通る', () => {
   const { graph } = analyzeMaze(pattern01);
-  assert.ok(!graph.get('B6').includes('B7'));
+  assert.ok(!graph.get('B6W').includes('B7') && !graph.get('B6E').includes('B7'));
   assert.ok(graph.get('B7').includes('C7'));
-  assert.ok(graph.get('C6').includes('C7'));
-  assert.throws(() => createRoutePoints(pattern01, ['B6', 'B7']), /壁/);
+  assert.ok(graph.get('C6S').includes('C7'));
+  assert.throws(() => createRoutePoints(pattern01, ['B6W', 'B7']), /壁/);
   for (const via of [pattern01.solutionVia, ...pattern01.alternativeSolutions.map(solution => solution.via)].filter(via => via.includes('C7'))) {
     const { route } = analyzeMaze(pattern01, via);
-    const index = route.indexOf('C5');
-    assert.deepEqual(route.slice(index, index + 3), ['C5', 'C6', 'C7']);
+    const index = route.indexOf('C5N');
+    assert.deepEqual(route.slice(index, index + 5), ['C5N', 'C5S', 'C6N', 'C6S', 'C7']);
     assert.equal(new Set(route).size, route.length, '同じ区画へ逆戻りしない');
   }
 });
@@ -170,7 +170,7 @@ test('F7左辺は上半分が青〇、下半分が赤✕で、正解線が青〇
 
 test('正解線はB1・C1付近の幅1.5mの通路中央を直線で通る', () => {
   const { route, routePoints } = analyzeMaze(pattern01);
-  assert.deepEqual(pattern01.solutionVia, ['C7', 'B1', 'C1']);
+  assert.deepEqual(pattern01.solutionVia, ['C5N', 'C7', 'B1', 'C1']);
   const index = route.indexOf('A2');
   assert.deepEqual(route.slice(index, index + 6), ['A2', 'A1', 'B1', 'C1', 'D1', 'D2']);
   const middle = (0 + 1.5) / 2;
