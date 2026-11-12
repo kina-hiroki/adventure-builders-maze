@@ -80,10 +80,15 @@ export function mountSequence() {
     listen(slider, 'input', () => { progress = Number(slider.value) / 100; stop(); draw(); });
     listen(top, 'change', () => { draw(); });
     jumps.forEach(button => listen(button, 'click', () => { progress = Number(button.getAttribute('data-sequence-jump')); stop(); draw(); }));
-    const observer = new ResizeObserver(draw);
+    let resizeFrame = 0;
+    // サイズ通知中の高さ変更が、親要素の再通知を引き起こさないようにする。
+    const observer = new ResizeObserver(() => {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => { resizeFrame = 0; draw(); });
+    });
     observer.observe(root);
     draw();
     stop();
     return { pause: stop, refresh: draw, dispose() { if (disposed)
-            return; stop(); disposed = true; events.abort(); observer.disconnect(); } };
+            return; stop(); disposed = true; events.abort(); observer.disconnect(); cancelAnimationFrame(resizeFrame); } };
 }
