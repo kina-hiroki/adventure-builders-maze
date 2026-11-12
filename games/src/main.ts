@@ -19,7 +19,8 @@ app.innerHTML = `
     </header>
     <section class="intro" aria-labelledby="page-title">
       <div><p class="eyebrow">CARDBOARD MAZE / 01</p><h1 id="page-title">パターン01<span>迷路を、立体で。</span></h1>
-      <p class="lead">平面図をもとに、ギミックに合わせた壁配置を3Dへ。視点を変えて、通路と全体の形を確かめられます。北側には幅1m・横4mの抜け道があり、トンネルを通らずA1からD1へ進めます。</p></div>
+      <p class="lead">平面図をもとに、ギミックに合わせた壁配置を3Dへ。視点を変えて、通路と全体の形を確かめられます。北側には幅1m・横4mの抜け道があり、トンネルを通らずA1からD1へ進めます。</p>
+      <p class="assembly-entry"><a href="${import.meta.env.BASE_URL}assembly.html">組み立てアニメーションを見る <span aria-hidden="true">→</span></a></p></div>
     </section>
     <dl class="specs" aria-label="迷路の仕様">
       <div><dt>本体の縦 × 横</dt><dd>7 <span>×</span> 7 <small>m</small></dd></div>

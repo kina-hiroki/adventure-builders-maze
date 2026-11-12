@@ -1,0 +1,61 @@
+<div id="complete-maze-sequence">
+  <div class="viz-controls">
+    <button class="btn btn-primary" data-sequence-play type="button">最初から連続再生</button>
+    <span data-sequence-phase aria-live="polite">① 段ボール2枚を組み合わせる</span>
+  </div>
+  <div class="viz-controls sequence-jumps" role="group" aria-label="組み立て工程">
+    <button class="btn" data-sequence-jump="0.04" type="button" aria-pressed="true">2枚の段ボール</button>
+    <button class="btn" data-sequence-jump="0.1904" type="button" aria-pressed="false">60cm重ねる</button>
+    <button class="btn" data-sequence-jump="0.3528" type="button" aria-pressed="false">下ふたを90°に折る</button>
+    <button class="btn" data-sequence-jump="0.58" type="button" aria-pressed="false">700cmの壁1枚</button>
+    <button class="btn" data-sequence-jump="0.76" type="button" aria-pressed="false">700cmの壁4枚</button>
+    <button class="btn" data-sequence-jump="1" type="button" aria-pressed="false">700cm四方</button>
+  </div>
+  <div data-sequence-scene>
+    <div id="join-opened-boxes">
+  <div class="viz-controls">
+    <button class="btn btn-primary" data-play type="button">壁を作る動きを再生</button>
+    <span data-stage aria-live="polite">展開図の寸法</span>
+  </div>
+  <div class="viz-controls join-scenes" role="group" aria-label="寸法を確認する場面">
+    <button class="btn" type="button" data-jump="0.06" aria-pressed="true">展開図</button>
+    <button class="btn" type="button" data-jump="0.34" aria-pressed="false">縦に60cm重ねる</button>
+    <button class="btn" type="button" data-jump="0.63" aria-pressed="false">下ふた30cmを折る</button>
+    <button class="btn" type="button" data-jump="1" aria-pressed="false">幅700cmの壁</button>
+  </div>
+  <svg data-scene role="img" aria-label="段ボール2枚を縦に60cm重ねたあと、下端のふた30cmを内側へ90度折り、高さ150cm、幅260cmの壁1組を作る。同じ壁3組を横に40cmずつ重ね、高さ1.5m、幅7.0mの壁にする。段ボールは計6枚。横の重ね代40cmは仮案。"></svg>
+  <div class="viz-row" aria-label="段ボールの区別">
+    <span><span class="sheet-key key-upper" aria-hidden="true"></span>上の段ボール</span>
+    <span><span class="sheet-key key-lower" aria-hidden="true"></span>下の段ボール</span>
+    <span class="text-small" data-hatch-label>斜線：縦の重なり</span>
+  </div>
+  <label class="form-label join-progress-label" for="join-box-progress">組み立て <span data-percent class="tabular-nums">0%</span></label>
+  <input id="join-box-progress" class="form-range" data-progress type="range" min="0" max="100" step="1" value="0" aria-label="壁の組み立ての進み具合">
+  <div data-status aria-live="polite">1枚：縦120cm × 横260cm</div>
+  <div class="text-small join-notes">上下のふた各30cm・のりしろ省略／横の重ね代40cm × 2か所は仮案</div>
+</div>
+
+
+
+    <div id="square-walls-demo">
+  <div class="viz-controls">
+    <button class="btn btn-primary" data-play type="button">4面を組み立てる</button>
+    <button class="btn" data-finish type="button">完成図</button>
+    <label class="form-check"><input class="form-check-input" data-top type="checkbox"><span class="form-check-label">真上から見る</span></label>
+  </div>
+  <svg data-scene role="img" aria-label="幅700cm、高さ150cmの壁4面を同時に動かし、700cm四方の正方形にする。奥行30cmの足元はすべて内側。各面は段ボール6枚、合計24枚。"></svg>
+  <label class="form-label" for="square-wall-progress">組み立て <span data-percent class="tabular-nums">0%</span></label>
+  <input class="form-range" id="square-wall-progress" data-progress type="range" min="0" max="100" value="0" step="1">
+  <div data-status aria-live="polite">壁4面・各面の幅700cm／高さ150cm</div>
+  <div class="text-small square-note">足元の奥行30cm／1面6枚 × 4面＝段ボール24枚／横の重ね代40cmは前案を継承（仮案）</div>
+</div>
+
+
+
+  </div>
+  <label class="form-check sequence-view" data-sequence-view hidden><input class="form-check-input" type="checkbox" data-sequence-top><span class="form-check-label">真上から見る</span></label>
+  <label class="form-label sequence-progress" for="complete-sequence-progress">全工程 <span data-sequence-percent class="tabular-nums">0%</span></label>
+  <input class="form-range" id="complete-sequence-progress" data-sequence-progress type="range" min="0" max="100" step="0.1" value="0" aria-label="全工程の進み具合">
+  <div data-sequence-detail aria-live="polite">1枚：縦120cm × 横260cm</div>
+  <div class="text-small sequence-note">縦の重ね代60cm／下ふた30cm／横の重ね代40cm × 2か所は仮案／完成：高さ150cm・700cm四方・段ボール計24枚</div>
+</div>

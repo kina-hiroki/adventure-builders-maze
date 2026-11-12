@@ -74,3 +74,7 @@ input[role='switch']:checked { background: #3d6a86; }input[role='switch']:checke
 .viewer-loading { display: grid; place-items: center; height: 100%; margin: 0; padding: 24px; color: #78899d; font-size: 12px; }
 .viewer-error { align-content: center; justify-items: center; }
 .viewer-error button { border: 1px solid #d9e2eb; background: white; border-radius: 7px; color: #405770; padding: 10px 16px; }
+
+.assembly-entry { margin: 16px 0 0; }
+.assembly-entry a { display: inline-flex; align-items: center; gap: 18px; min-height: 44px; padding: 10px 15px; border: 1px solid #b8ccdc; border-radius: 8px; background: #fff; color: #2d526d; font-size: 12px; font-weight: 600; text-decoration: none; }
+.assembly-entry a:hover { background: #edf4f8; }

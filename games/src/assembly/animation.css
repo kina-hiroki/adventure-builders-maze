@@ -1,0 +1,37 @@
+
+  #join-opened-boxes { color:var(--foreground); }
+  #join-opened-boxes [data-scene] { display:block; width:100%; overflow:hidden; margin-block:calc(var(--font-size-base)*.5); }
+  #join-opened-boxes svg text { font-family:inherit; fill:var(--foreground); }
+  #join-opened-boxes .join-scenes { margin-top:calc(var(--font-size-base)*.5); }
+  #join-opened-boxes .join-progress-label { margin-top:calc(var(--font-size-base)*1); }
+  #join-opened-boxes .join-notes { margin-top:calc(var(--font-size-base)*.5); color:var(--muted-foreground); }
+  #join-opened-boxes .sheet-key { display:inline-block; width:10px; height:10px; margin-right:calc(var(--font-size-base)*.35); }
+  #join-opened-boxes .key-upper { background:var(--viz-series-1); }
+  #join-opened-boxes .key-lower { background:var(--viz-series-2); }
+  #join-opened-boxes .upper-flap { fill:color-mix(in srgb,var(--viz-series-1) 11%,var(--background)); }
+  #join-opened-boxes .upper-body { fill:color-mix(in srgb,var(--viz-series-1) 21%,var(--background)); }
+  #join-opened-boxes .lower-flap { fill:color-mix(in srgb,var(--viz-series-2) 11%,var(--background)); }
+  #join-opened-boxes .lower-body { fill:color-mix(in srgb,var(--viz-series-2) 21%,var(--background)); }
+  #join-opened-boxes .cut { fill:none; stroke:color-mix(in srgb,var(--foreground) 62%,var(--background)); stroke-width:1; }
+  #join-opened-boxes .fold { fill:none; stroke:color-mix(in srgb,var(--foreground) 40%,var(--background)); stroke-width:1; stroke-dasharray:4 4; }
+  #join-opened-boxes .dimension { fill:none; stroke:color-mix(in srgb,var(--foreground) 55%,var(--background)); stroke-width:1; }
+
+
+  #square-walls-demo { color:var(--foreground); }
+  #square-walls-demo [data-scene] { display:block; width:100%; overflow:hidden; margin-block:calc(var(--font-size-base)*.5); }
+  #square-walls-demo svg text { fill:var(--foreground); font-family:inherit; }
+  #square-walls-demo .square-note { margin-top:calc(var(--font-size-base)*.5); color:var(--muted-foreground); }
+  #square-walls-demo .upper-body { fill:color-mix(in srgb,var(--viz-series-1) 21%,var(--background)); }
+  #square-walls-demo .upper-flap { fill:color-mix(in srgb,var(--viz-series-1) 11%,var(--background)); }
+  #square-walls-demo .lower-body { fill:color-mix(in srgb,var(--viz-series-2) 21%,var(--background)); }
+  #square-walls-demo .foot { fill:color-mix(in srgb,var(--viz-series-2) 13%,var(--background)); }
+  #square-walls-demo .edge { stroke:color-mix(in srgb,var(--foreground) 55%,var(--background)); stroke-width:1; fill:none; }
+  #square-walls-demo .fold { stroke:color-mix(in srgb,var(--foreground) 28%,var(--background)); stroke-width:1; stroke-dasharray:4 4; fill:none; }
+  #square-walls-demo .dimension { stroke:color-mix(in srgb,var(--foreground) 65%,var(--background)); stroke-width:1; fill:none; }
+
+
+  #complete-maze-sequence { color:var(--foreground); }
+  #complete-maze-sequence .sequence-jumps { margin-top:calc(var(--font-size-base)*.5); }
+  #complete-maze-sequence .sequence-progress { margin-top:calc(var(--font-size-base)*.75); }
+  #complete-maze-sequence .sequence-note { margin-top:calc(var(--font-size-base)*.5); color:var(--muted-foreground); }
+  #complete-maze-sequence .sequence-view { margin-top:calc(var(--font-size-base)*.5); }

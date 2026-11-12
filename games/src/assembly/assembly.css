@@ -1,0 +1,43 @@
+.assembly-page {
+  --font-size-base: 14px;
+  --foreground: #23364b;
+  --muted-foreground: #6b7b8d;
+  --viz-series-1: #277b92;
+  --viz-series-2: #ad783c;
+}
+.assembly-back { font-size: 12px; text-underline-offset: 4px; white-space: nowrap; }
+.assembly-viewer {
+  --background: #fff;
+  padding: clamp(14px, 3vw, 30px);
+  border: 1px solid #dce4ed;
+  border-radius: 14px;
+  background: var(--background);
+  font-size: var(--font-size-base);
+}
+.assembly-viewer [hidden] { display: none !important; }
+.assembly-viewer .viz-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.assembly-viewer .btn {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid #cbd7e3;
+  border-radius: 7px;
+  background: #fff;
+  color: #23364b;
+}
+.assembly-viewer .btn:hover { background: #edf4f8; }
+.assembly-viewer .btn-primary,
+.assembly-viewer .btn[aria-pressed='true'] { background: #2d526d; border-color: #2d526d; color: #fff; }
+.assembly-viewer .form-label { display: block; }
+.assembly-viewer .form-range { width: 100%; margin: 12px 0 16px; accent-color: #2d526d; }
+.assembly-viewer .form-check { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+.assembly-viewer .form-check input { width: 18px; height: 18px; accent-color: #2d526d; }
+.assembly-viewer .text-small { font-size: 12px; line-height: 1.8; }
+.assembly-viewer .tabular-nums { font-variant-numeric: tabular-nums; }
+.assembly-viewer [data-sequence-detail] { line-height: 1.8; }
+.assembly-scope { font-size: 12px; line-height: 1.8; color: #6b7b8d; margin: 18px 0 26px; }
+@media (max-width: 680px) {
+  .assembly-page .page-header { align-items: flex-start; flex-wrap: wrap; }
+  .assembly-page .brand { font-size: 9px; }
+  .assembly-viewer { padding: 12px; }
+  .assembly-viewer .btn { padding: 9px 11px; font-size: 12px; }
+}
