@@ -33,7 +33,7 @@ try {
   scope.defer(wall.dispose);
   const square = mountSquare();
   scope.defer(square.dispose);
-  const sequence = mountSequence();
+  const sequence = mountSequence({ wall, square });
   scope.defer(sequence.dispose);
   const events = new AbortController();
   scope.defer(() => events.abort());

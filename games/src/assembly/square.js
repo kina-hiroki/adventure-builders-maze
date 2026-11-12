@@ -1,5 +1,6 @@
 import { squareGeometry as geometryAt, squareSolidFaces, orderedFaces as ordered, ease, add, sub, mul, dot } from './geometry.js';
 import { addCardboardPattern, drawCorrugation } from './material.js';
+import { createSvgRenderer } from './svgRenderer.js';
 export function mountSquare() {
     const events = new AbortController();
     let disposed = false;
@@ -7,26 +8,20 @@ export function mountSquare() {
     const root = document.getElementById('square-walls-demo'), svg = root.querySelector('[data-scene]');
     const play = root.querySelector('[data-play]'), finish = root.querySelector('[data-finish]'), top = root.querySelector('[data-top]');
     const slider = root.querySelector('[data-progress]'), percent = root.querySelector('[data-percent]'), status = root.querySelector('[data-status]');
-    const ns = 'http://www.w3.org/2000/svg', names = ['A', 'B', 'C', 'D'];
+    const renderer = createSvgRenderer(svg), make = renderer.make;
+    const names = ['A', 'B', 'C', 'D'];
+    let lastProgress = -1, lastWidth = -1, lastTop;
     let progress = 0, frame = 0, running = false, lastStatus = '';
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    function make(tag, attrs = {}, value, parent = svg) {
-        const n = document.createElementNS(ns, tag);
-        for (const [k, v] of Object.entries(attrs))
-            n.setAttribute(k, String(v));
-        if (value !== undefined)
-            n.textContent = value;
-        parent.appendChild(n);
-        return n;
-    }
     function draw() {
         if (disposed)
             return;
         const width = Math.max(240, svg.clientWidth || root.clientWidth), g = geometryAt(progress);
+        if (progress === lastProgress && width === lastWidth && top.checked === lastTop) return;
         const fromHeight = Math.max(360, Math.min(520, width * .58 + 90)), toHeight = Math.max(380, Math.min(590, width * .72 + 90));
         const height = fromHeight + (toHeight - fromHeight) * g.intro;
         svg.setAttribute('height', String(height));
-        svg.replaceChildren();
+        renderer.begin();
         const completion = ease((progress - .46) / .51);
         const az = top.checked ? 0 : -.23 - .49 * g.intro;
         const referenceElevation = top.checked ? Math.PI / 2 : .46 + .49 * g.intro;
@@ -124,6 +119,10 @@ export function mountSquare() {
                 '壁4枚を同時に持ち上げ、向きを変えて配置する／各幅700cm・高さ150cm';
             lastStatus = key;
         }
+        renderer.end();
+        lastProgress = progress;
+        lastWidth = width;
+        lastTop = top.checked;
     }
     function stop() { cancelAnimationFrame(frame); running = false; play.textContent = progress === 1 ? 'もう一度組み立てる' : progress > 0 ? '続きを再生' : '4面を組み立てる'; }
     function animate() { stop(); if (progress === 1)
@@ -154,6 +153,13 @@ export function mountSquare() {
     observer.observe(root);
     draw();
     stop();
-    return { pause: stop, refresh: draw, dispose() { if (disposed)
+    return { pause: stop, refresh: draw,
+        setProgress(value, topView = top.checked) {
+            if (running) stop();
+            progress = Math.max(0, Math.min(1, value));
+            top.checked = topView;
+            draw();
+        },
+        dispose() { if (disposed)
             return; stop(); disposed = true; events.abort(); observer.disconnect(); cancelAnimationFrame(resizeFrame); } };
 }

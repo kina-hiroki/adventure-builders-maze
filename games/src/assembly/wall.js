@@ -1,5 +1,6 @@
 import { wallGeometry as geometryAt, wallSolidFaces, DISPLAY_SHEET_THICKNESS, orderedFaces, mix, add, mul } from './geometry.js';
 import { addCardboardPattern, drawCorrugation } from './material.js';
+import { createSvgRenderer } from './svgRenderer.js';
 export function mountWall() {
     const events = new AbortController();
     let disposed = false;
@@ -13,24 +14,17 @@ export function mountWall() {
     const status = root.querySelector('[data-status]');
     const hatchLabel = root.querySelector('[data-hatch-label]');
     const jumps = [...root.querySelectorAll('[data-jump]')];
-    const ns = 'http://www.w3.org/2000/svg';
+    const renderer = createSvgRenderer(svg), make = renderer.make;
+    let lastProgress = -1, lastWidth = -1;
     let progress = 0, frame = 0, running = false, lastStage = -1;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    function make(tag, attrs = {}, value, parent = svg) {
-        const node = document.createElementNS(ns, tag);
-        for (const [k, v] of Object.entries(attrs))
-            node.setAttribute(k, String(v));
-        if (value !== undefined)
-            node.textContent = value;
-        parent.appendChild(node);
-        return node;
-    }
     function draw() {
         if (disposed)
             return;
         const width = Math.max(240, svg.clientWidth || root.clientWidth), height = Math.max(360, Math.min(520, width * .58 + 90));
+        if (progress === lastProgress && width === lastWidth) return;
         svg.setAttribute('height', String(height));
-        svg.replaceChildren();
+        renderer.begin();
         const g = geometryAt(progress), ca = Math.cos(g.azimuth), sa = Math.sin(g.azimuth), ce = Math.cos(g.elevation), se = Math.sin(g.elevation);
         root.dataset.joined = String(g.join === 1);
         function project(p) { return [p[0] * ca - p[2] * sa, -p[1] * ce + (p[0] * sa + p[2] * ca) * se]; }
@@ -51,7 +45,7 @@ export function mountWall() {
         addCardboardPattern(make, defs, 'wall-cardboard-kraft');
         const pattern = make('pattern', { id: 'wall-overlap-hatch', width: 9, height: 9, patternUnits: 'userSpaceOnUse' }, undefined, defs);
         make('path', { d: 'M-2 2L2-2M0 9L9 0M7 11L11 7', fill: 'none', stroke: 'var(--foreground)', 'stroke-opacity': '.20', 'stroke-width': 1 }, undefined, pattern);
-        const shown = wallSolidFaces(g).filter(f => f.unit === 0 || g.reveal > 0);
+        const shown = wallSolidFaces({ ...g, faces: g.faces.filter(f => f.unit === 0 || g.reveal > 0) });
         const view = [sa * ce, se, ca * ce];
         let piece = 0;
         for (const face of orderedFaces(shown, view)) {
@@ -191,6 +185,9 @@ export function mountWall() {
         }
         const selected = progress < .12 ? 0 : progress < .42 ? 1 : progress < .68 ? 2 : 3;
         jumps.forEach((button, i) => button.setAttribute('aria-pressed', String(i === selected)));
+        renderer.end();
+        lastProgress = progress;
+        lastWidth = width;
     }
     function stop() { cancelAnimationFrame(frame); running = false; button.textContent = progress === 1 ? 'もう一度再生' : progress > 0 ? '続きを再生' : '壁を作る動きを再生'; }
     function animate() {
@@ -230,6 +227,12 @@ export function mountWall() {
     observer.observe(root);
     draw();
     stop();
-    return { pause: stop, refresh: draw, dispose() { if (disposed)
+    return { pause: stop, refresh: draw,
+        setProgress(value) {
+            if (running) stop();
+            progress = Math.max(0, Math.min(1, value));
+            draw();
+        },
+        dispose() { if (disposed)
             return; stop(); disposed = true; events.abort(); observer.disconnect(); cancelAnimationFrame(resizeFrame); } };
 }

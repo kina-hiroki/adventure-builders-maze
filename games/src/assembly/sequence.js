@@ -1,4 +1,4 @@
-export function mountSequence() {
+export function mountSequence({ wall: wallController, square: squareController }) {
     const events = new AbortController();
     let disposed = false;
     function listen(target, type, callback) { target.addEventListener(type, callback, { signal: events.signal }); }
@@ -9,8 +9,7 @@ export function mountSequence() {
     const view = root.querySelector('[data-sequence-view]'), top = root.querySelector('[data-sequence-top]');
     const jumps = [...root.querySelectorAll('[data-sequence-jump]')];
     const join = document.getElementById('join-opened-boxes'), square = document.getElementById('square-walls-demo');
-    const joinSlider = join.querySelector('[data-progress]'), squareSlider = square.querySelector('[data-progress]');
-    const squareTop = square.querySelector('[data-top]');
+    const joinStatus = join.querySelector('[data-status]'), squareStatus = square.querySelector('[data-status]');
     // 既存の2つの描画処理を、一つの再生ボタンと時系列で制御する。
     for (const engine of [join, square]) {
         const canvas = engine.querySelector('[data-scene]'), controls = document.createElement('div');
@@ -34,19 +33,23 @@ export function mountSequence() {
         view.hidden = !isSquare || local < .30;
         if (!isSquare || local < .30)
             top.checked = false;
-        const engineSlider = isSquare ? squareSlider : joinSlider;
-        squareTop.checked = top.checked;
-        engineSlider.value = String(local * 100);
-        engineSlider.dispatchEvent(new Event('input', { bubbles: true }));
+        // rangeのstepによる丸めを通さず、小数の再生位置をそのまま描画する。
+        if (isSquare) squareController.setProgress(local, top.checked);
+        else wallController.setProgress(local);
         const active = progress < .0672 ? 0 : progress < .2352 ? 1 : progress < .3808 ? 2 : progress < .64 ? 3 : progress < .784 ? 4 : 5;
         if (active !== lastPhase) {
             phase.textContent = ['① 段ボール2枚の寸法', '① 2枚を縦に60cm重ねる', '② 下ふた30cmを内側へ90°', '③ 幅700cmの壁1枚を作る', '④ 同じ700cmの壁を4枚並べる', '⑤ 4枚をまとめて動かし、正方形に組む'][active];
             lastPhase = active;
         }
-        detail.textContent = (isSquare ? square : join).querySelector('[data-status]').textContent;
+        const description = (isSquare ? squareStatus : joinStatus).textContent;
+        if (detail.textContent !== description) detail.textContent = description;
         slider.value = String(progress * 100);
-        percent.textContent = (progress * 100).toFixed(1).replace(/\.0$/, '') + '%';
-        jumps.forEach((button, i) => button.setAttribute('aria-pressed', String(i === active)));
+        const percentage = (progress * 100).toFixed(1).replace(/\.0$/, '') + '%';
+        if (percent.textContent !== percentage) percent.textContent = percentage;
+        jumps.forEach((button, i) => {
+            const pressed = String(i === active);
+            if (button.getAttribute('aria-pressed') !== pressed) button.setAttribute('aria-pressed', pressed);
+        });
     }
     function stop() { cancelAnimationFrame(frame); running = false; play.textContent = progress === 1 ? '最初からもう一度' : progress > 0 ? '続きを連続再生' : '最初から連続再生'; }
     function animate() {
