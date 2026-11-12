@@ -1,4 +1,4 @@
-import { squareGeometry as geometryAt, squareSolidFaces, orderedFaces as ordered, add, sub, mul, dot } from './geometry.js';
+import { squareGeometry as geometryAt, squareSolidFaces, orderedFaces as ordered, ease, add, sub, mul, dot } from './geometry.js';
 import { addCardboardPattern, drawCorrugation } from './material.js';
 export function mountSquare() {
     const events = new AbortController();
@@ -27,7 +27,10 @@ export function mountSquare() {
         const height = fromHeight + (toHeight - fromHeight) * g.intro;
         svg.setAttribute('height', String(height));
         svg.replaceChildren();
-        const az = top.checked ? 0 : -.23 - .49 * g.intro, el = top.checked ? Math.PI / 2 : .46 + .49 * g.intro;
+        const completion = ease((progress - .46) / .51);
+        const az = top.checked ? 0 : -.23 - .49 * g.intro;
+        const referenceElevation = top.checked ? Math.PI / 2 : .46 + .49 * g.intro;
+        const el = referenceElevation - (top.checked ? 0 : .25 * completion);
         const ca = Math.cos(az), sa = Math.sin(az), ce = Math.cos(el), se = Math.sin(el);
         function project(p) { return [p[0] * ca - p[2] * sa, -p[1] * ce + (p[0] * sa + p[2] * ca) * se]; }
         const focus = [350, 75, 15];
@@ -37,9 +40,12 @@ export function mountSquare() {
         const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
         const padding = 132 + ((width < 480 ? 92 : 130) - 132) * g.intro;
         const topPadding = 140 - 90 * g.intro, bottomPadding = 100 - 50 * g.intro;
-        const scale = Math.min((width - padding) / (maxX - minX), (height - topPadding - bottomPadding) / (maxY - minY));
+        // 角度変更前の倍率を基準にし、完成図の横幅を従来の1.25倍にする。
+        const referenceYs = framePoints.map(p => -p[1] * Math.cos(referenceElevation) + (p[0] * sa + p[2] * ca) * Math.sin(referenceElevation));
+        const referenceHeight = Math.max(...referenceYs) - Math.min(...referenceYs);
+        const scale = Math.min((width - padding) / (maxX - minX), (height - topPadding - bottomPadding) / referenceHeight) * (1 + .25 * completion);
         const tx = width / 2 - (minX + maxX) * scale / 2;
-        const ty = (height + topPadding - bottomPadding) / 2 - (minY + maxY) * scale / 2;
+        const ty = (height + topPadding - bottomPadding) / 2 - (minY + maxY) * scale / 2 + (top.checked ? 20 * completion : 0);
         const screen = p => { const q = project(p); return [q[0] * scale + tx, q[1] * scale + ty]; };
         function line(a, b, attrs = {}, parent = svg) { return make('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: 'dimension', ...attrs }, undefined, parent); }
         function text(x, y, value, attrs = {}) { return make('text', { x, y, 'text-anchor': 'middle', ...attrs }, value); }
@@ -105,7 +111,9 @@ export function mountSquare() {
                 line([x, a[1]], [x, b[1]]);
                 for (const y of [a[1], b[1]])
                     line([x - 4, y], [x + 4, y]);
-                text(x + 8, (a[1] + b[1]) / 2 + 4, '150cm', { 'text-anchor': 'start' });
+                const tight = x + 64 > width;
+                text(tight ? Math.min(x + 48, width - 6) : x + 8, tight ? b[1] - 12 : (a[1] + b[1]) / 2 + 4,
+                    '150cm', { 'text-anchor': tight ? 'end' : 'start' });
             }
         }
         slider.value = String(Math.round(progress * 100));
