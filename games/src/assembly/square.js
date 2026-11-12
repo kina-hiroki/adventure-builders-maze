@@ -1,4 +1,5 @@
-import { squareGeometry as geometryAt, orderedFaces as ordered, add, sub, mul, dot } from './geometry.js';
+import { squareGeometry as geometryAt, squareSolidFaces, orderedFaces as ordered, add, sub, mul, dot } from './geometry.js';
+import { addCardboardPattern, drawCorrugation } from './material.js';
 export function mountSquare() {
     const events = new AbortController();
     let disposed = false;
@@ -34,21 +35,28 @@ export function mountSquare() {
         const framePoints = g.faces.flatMap(f => f.points).concat(anchors);
         const ps = framePoints.map(project), xs = ps.map(p => p[0]), ys = ps.map(p => p[1]);
         const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-        const padding = 132 + ((width < 480 ? 92 : 130) - 132) * g.intro, verticalPadding = 150 - 50 * g.intro;
-        const scale = Math.min((width - padding) / (maxX - minX), (height - verticalPadding) / (maxY - minY));
-        const tx = width / 2 - (minX + maxX) * scale / 2, ty = height / 2 - (minY + maxY) * scale / 2;
+        const padding = 132 + ((width < 480 ? 92 : 130) - 132) * g.intro;
+        const topPadding = 140 - 90 * g.intro, bottomPadding = 100 - 50 * g.intro;
+        const scale = Math.min((width - padding) / (maxX - minX), (height - topPadding - bottomPadding) / (maxY - minY));
+        const tx = width / 2 - (minX + maxX) * scale / 2;
+        const ty = (height + topPadding - bottomPadding) / 2 - (minY + maxY) * scale / 2;
         const screen = p => { const q = project(p); return [q[0] * scale + tx, q[1] * scale + ty]; };
         function line(a, b, attrs = {}, parent = svg) { return make('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: 'dimension', ...attrs }, undefined, parent); }
         function text(x, y, value, attrs = {}) { return make('text', { x, y, 'text-anchor': 'middle', ...attrs }, value); }
         const defs = make('defs'), pattern = make('pattern', { id: 'square-joint-hatch', width: 8, height: 8, patternUnits: 'userSpaceOnUse' }, undefined, defs);
         make('path', { d: 'M-2 2L2-2M0 8L8 0M6 10L10 6', fill: 'none', stroke: 'var(--foreground)', 'stroke-opacity': '.18' }, undefined, pattern);
+        addCardboardPattern(make, defs, 'square-cardboard-kraft');
         let piece = 0;
-        for (const face of ordered(g.faces, [sa * ce, se, ca * ce])) {
+        for (const face of ordered(squareSolidFaces(g), [sa * ce, se, ca * ce])) {
             const points = face.points.map(p => screen(p).join(',')).join(' ');
-            make('polygon', { points, class: face.kind });
+            make('polygon', { points, class: face.surface === 'edge' ? 'cardboard-edge' : face.kind, 'data-surface': face.surface });
             const id = 'square-piece-' + piece++, clip = make('clipPath', { id }, undefined, defs);
             make('polygon', { points }, undefined, clip);
             const details = make('g', { 'clip-path': 'url(#' + id + ')' });
+            if (face.surface === 'edge') {
+                drawCorrugation(face, screen, make, details);
+                continue;
+            }
             if (face.kind !== 'foot') {
                 for (const u of [220, 440])
                     make('polygon', { points: [face.map(u, 0, 0), face.map(u + 40, 0, 0), face.map(u + 40, 150, 0), face.map(u, 150, 0)].map(p => screen(p).join(',')).join(' '), fill: 'url(#square-joint-hatch)' }, undefined, details);

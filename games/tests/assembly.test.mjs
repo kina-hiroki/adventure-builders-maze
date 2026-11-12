@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { wallGeometry, squareGeometry } from '../src/assembly/geometry.js';
+import { wallGeometry, squareGeometry, wallSolidFaces, squareSolidFaces, DISPLAY_SHEET_THICKNESS } from '../src/assembly/geometry.js';
 
 const distance = (a, b) => Math.hypot(...a.map((value, i) => value - b[i]));
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-7, `${a} != ${b}`);
@@ -25,12 +25,34 @@ test('3組を40cmずつ2か所で重ねると、幅700cmになる', () => {
   near(260 - (wall.starts[2] - wall.starts[1]), 40);
 });
 
-test('下ふたを折る間だけ正面寄りの視点になり、7mの壁へ滑らかに戻る', () => {
+test('下ふたを折る間は正面から30度の視点になり、7mの壁へ滑らかに戻る', () => {
   const folded = wallGeometry(.63);
   const fullWall = wallGeometry(1);
-  assert.ok(Math.abs(folded.azimuth) < Math.abs(fullWall.azimuth));
-  assert.ok(folded.elevation > 0);
+  near(folded.azimuth, -Math.PI / 6);
+  near(folded.elevation, Math.PI / 6);
+  near(wallGeometry(.5).azimuth, folded.azimuth);
   near(wallGeometry(.68).azimuth, fullWall.azimuth);
+});
+
+test('折る途中も板の表裏間隔を保ち、完成した4面にも切り口と厚みがある', () => {
+  for (const progress of [0, .49, .63, 1]) {
+    const geometry = wallGeometry(progress), solids = wallSolidFaces(geometry);
+    for (const source of geometry.faces) {
+      const index = solids.findIndex(face => face.surface === 'front' && face.points === source.points);
+      const front = solids[index], back = solids[index + 1];
+      const delta = front.points[0].map((value, i) => value - back.points[0][i]);
+      near(Math.hypot(...delta), DISPLAY_SHEET_THICKNESS);
+      for (const vertex of front.points.slice(1)) {
+        near(delta.reduce((sum, value, i) => sum + value * (vertex[i] - front.points[0][i]), 0), 0);
+      }
+    }
+    assert.ok(solids.some(face => face.surface === 'edge' && face.corrugation.length === 4));
+  }
+  const square = squareGeometry(1), solids = squareSolidFaces(square);
+  for (const source of square.faces) {
+    const index = solids.findIndex(face => face.surface === 'front' && face.points === source.points);
+    near(distance(solids[index].points[0], solids[index + 1].points[0]), DISPLAY_SHEET_THICKNESS * (source.kind === 'foot' ? 1 : 2));
+  }
 });
 
 test('壁1枚から4枚を平行に用意し、その後4枚が同時に動く', () => {

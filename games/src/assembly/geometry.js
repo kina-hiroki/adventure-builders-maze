@@ -6,6 +6,8 @@ const sub = (a, b) => a.map((v, i) => v - b[i]);
 const mul = (a, k) => a.map(v => v * k);
 const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
 const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+// 実測値ではなく、切り口を読めるように強調した表示上の厚み。
+export const DISPLAY_SHEET_THICKNESS = 2;
 export function wallGeometry(p) {
     const join = ease((p - .12) / .18), turn = ease((p - .38) / .04);
     const fold = ease((p - .42) / .16), reveal = ease((p - .68) / .10), connect = ease((p - .84) / .12);
@@ -16,10 +18,10 @@ export function wallGeometry(p) {
         faces.push({ points, edges, which, zone, unit, ox, z, foot });
     }
     for (let unit = 0; unit < 3; unit++) {
-        const ox = starts[unit], baseZ = unit * .8;
+        const ox = starts[unit], baseZ = unit * DISPLAY_SHEET_THICKNESS * 2;
         for (const which of ['lower', 'upper']) {
             const bottom = which === 'lower' ? -30 : upperBottom;
-            const z = baseZ + (which === 'upper' ? .3 : 0);
+            const z = baseZ + (which === 'upper' ? DISPLAY_SHEET_THICKNESS : 0);
             let x = ox;
             for (const panelWidth of [70, 60, 70, 60]) {
                 for (let zone = 0; zone < 3; zone++) {
@@ -39,8 +41,9 @@ export function wallGeometry(p) {
             }
         }
     }
-    const frontView = ease((p - .38) / .04) * (1 - ease((p - .64) / .04));
-    return { faces, join, turn, fold, reveal, connect, angle, upperBottom, starts, wallHeight: 150 + 30 * Math.cos(angle), width: starts[2] + 260, azimuth: -.23 * turn + .10 * frontView, elevation: .46 * turn + .04 * frontView };
+    const foldView = ease((p - .38) / .04) * (1 - ease((p - .64) / .04));
+    return { faces, join, turn, fold, reveal, connect, angle, upperBottom, starts, wallHeight: 150 + 30 * Math.cos(angle), width: starts[2] + 260,
+        azimuth: mix(-.23 * turn, -Math.PI / 6, foldView), elevation: mix(.46 * turn, Math.PI / 6, foldView) };
 }
 export function squareGeometry(p) {
     const intro = ease((p - .10) / .20), amounts = [0, 0, 0, 0];
@@ -69,6 +72,42 @@ export function squareGeometry(p) {
         faces.push({ points, outline: points, kind: 'foot', wall, map });
     }
     return { faces, walls, amounts, intro, visibleCount: intro === 0 ? 1 : 4, complete: p >= .97 };
+}
+
+function thickenFace(face, offset, exposedEdges) {
+    const shift = point => add(point, offset);
+    const back = { ...face, surface: 'back', points: face.points.map(shift) };
+    if (face.edges) back.edges = face.edges.map(edge => ({ ...edge, a: shift(edge.a), b: shift(edge.b) }));
+    if (face.outline) back.outline = face.outline.map(shift);
+    if (face.map) back.map = (...args) => shift(face.map(...args));
+    if (face.z !== undefined) back.z = face.z + offset[2];
+    const result = [{ ...face, surface: 'front' }, back];
+    for (const index of exposedEdges) {
+        const a = face.points[index], b = face.points[(index + 1) % face.points.length];
+        const points = [a, b, shift(b), shift(a)];
+        result.push({ ...face, surface: 'edge', points, corrugation: points });
+    }
+    return result;
+}
+
+export function wallSolidFaces(g) {
+    return g.faces.flatMap(face => {
+        const offset = face.foot
+            ? [0, -Math.sin(g.angle) * DISPLAY_SHEET_THICKNESS, -Math.cos(g.angle) * DISPLAY_SHEET_THICKNESS]
+            : [0, 0, -DISPLAY_SHEET_THICKNESS];
+        const cuts = face.edges.flatMap((edge, index) => edge.type === 'cut' ? [index] : []);
+        return thickenFace(face, offset, cuts);
+    });
+}
+
+export function squareSolidFaces(g) {
+    return g.faces.flatMap(face => {
+        const foot = face.kind === 'foot';
+        const offset = foot ? [0, -DISPLAY_SHEET_THICKNESS, 0]
+            : sub(face.map(0, 0, -DISPLAY_SHEET_THICKNESS * 2), face.map(0, 0, 0));
+        const cuts = foot ? [1, 2, 3] : [1, 3, ...(face.y0 === 0 ? [0] : []), ...(face.y1 === 150 ? [2] : [])];
+        return thickenFace(face, offset, cuts);
+    });
 }
 function planeOf(points) {
     const a = points[0];

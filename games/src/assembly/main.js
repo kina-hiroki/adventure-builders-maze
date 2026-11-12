@@ -23,7 +23,7 @@ app.innerHTML = `
       </div>
     </section>
     <section class="assembly-viewer" aria-label="段ボールの組み立て手順">${markup}</section>
-    <p class="assembly-scope">24枚は、ここで示す外周4面の構成例です。迷路内部の仕切り壁やギミックの材料は含みません。</p>
+    <p class="assembly-scope">24枚は、ここで示す外周4面の構成例です。迷路内部の仕切り壁やギミックの材料は含みません。厚みは見やすさのため強調しています（実測値ではありません）。</p>
     <footer class="page-footer">ADVENTURE BUILDERS <a href="${base}">3D迷路へ戻る</a></footer>
   </main>`;
 

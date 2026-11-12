@@ -35,3 +35,8 @@
   #complete-maze-sequence .sequence-progress { margin-top:calc(var(--font-size-base)*.75); }
   #complete-maze-sequence .sequence-note { margin-top:calc(var(--font-size-base)*.5); color:var(--muted-foreground); }
   #complete-maze-sequence .sequence-view { margin-top:calc(var(--font-size-base)*.5); }
+
+  #join-opened-boxes[data-joined='true'] :is(.upper-body, .upper-flap, .lower-body, .lower-flap) { fill:url(#wall-cardboard-kraft); }
+  #square-walls-demo :is(.upper-body, .upper-flap, .lower-body, .foot) { fill:url(#square-cardboard-kraft); }
+  #complete-maze-sequence .cardboard-edge { fill:#b18450; stroke:#805a33; stroke-width:.5; stroke-linejoin:round; }
+  #complete-maze-sequence .cardboard-flutes { fill:none; stroke:#70502f; stroke-width:.65; stroke-linecap:round; stroke-linejoin:round; }

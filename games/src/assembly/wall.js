@@ -1,4 +1,5 @@
-import { wallGeometry as geometryAt, orderedFaces, mix, add, sub, mul } from './geometry.js';
+import { wallGeometry as geometryAt, wallSolidFaces, DISPLAY_SHEET_THICKNESS, orderedFaces, mix, add, mul } from './geometry.js';
+import { addCardboardPattern, drawCorrugation } from './material.js';
 export function mountWall() {
     const events = new AbortController();
     let disposed = false;
@@ -31,6 +32,7 @@ export function mountWall() {
         svg.setAttribute('height', String(height));
         svg.replaceChildren();
         const g = geometryAt(progress), ca = Math.cos(g.azimuth), sa = Math.sin(g.azimuth), ce = Math.cos(g.elevation), se = Math.sin(g.elevation);
+        root.dataset.joined = String(g.join === 1);
         function project(p) { return [p[0] * ca - p[2] * sa, -p[1] * ce + (p[0] * sa + p[2] * ca) * se]; }
         function bounds(faces) {
             const ps = faces.flatMap(f => f.points.map(project));
@@ -38,24 +40,31 @@ export function mountWall() {
         }
         const one = bounds(g.faces.filter(f => f.unit === 0)), all = bounds(g.faces);
         const box = one.map((v, i) => mix(v, all[i], g.reveal));
-        const scale = Math.min((width - 132) / (box[2] - box[0]), (height - 150) / (box[3] - box[1]));
-        const offsetX = width / 2 - (box[0] + box[2]) * scale / 2, offsetY = height / 2 - (box[1] + box[3]) * scale / 2;
+        const topPadding = mix(75, 140, g.reveal), bottomPadding = mix(75, 100, g.reveal);
+        const scale = Math.min((width - 132) / (box[2] - box[0]), (height - topPadding - bottomPadding) / (box[3] - box[1]));
+        const offsetX = width / 2 - (box[0] + box[2]) * scale / 2;
+        const offsetY = (height + topPadding - bottomPadding) / 2 - (box[1] + box[3]) * scale / 2;
         const screen = p => { const q = project(p); return [q[0] * scale + offsetX, q[1] * scale + offsetY]; };
         function line(a, b, attrs = {}, parent = svg) { return make('line', { x1: a[0], y1: a[1], x2: b[0], y2: b[1], class: 'dimension', ...attrs }, undefined, parent); }
         function text(x, y, value, attrs = {}, parent = svg) { return make('text', { x, y, 'text-anchor': 'middle', ...attrs }, value, parent); }
         const defs = make('defs');
+        addCardboardPattern(make, defs, 'wall-cardboard-kraft');
         const pattern = make('pattern', { id: 'wall-overlap-hatch', width: 9, height: 9, patternUnits: 'userSpaceOnUse' }, undefined, defs);
         make('path', { d: 'M-2 2L2-2M0 9L9 0M7 11L11 7', fill: 'none', stroke: 'var(--foreground)', 'stroke-opacity': '.20', 'stroke-width': 1 }, undefined, pattern);
-        const shown = g.faces.filter(f => f.unit === 0 || g.reveal > 0);
+        const shown = wallSolidFaces(g).filter(f => f.unit === 0 || g.reveal > 0);
         const view = [sa * ce, se, ca * ce];
         let piece = 0;
         for (const face of orderedFaces(shown, view)) {
             const points = face.points.map(p => screen(p).join(',')).join(' ');
-            make('polygon', { points, class: face.which + '-' + (face.zone === 1 ? 'body' : 'flap') });
+            make('polygon', { points, class: face.surface === 'edge' ? 'cardboard-edge' : face.which + '-' + (face.zone === 1 ? 'body' : 'flap'), 'data-surface': face.surface });
             const id = 'wall-piece-' + piece++;
             const clip = make('clipPath', { id }, undefined, defs);
             make('polygon', { points }, undefined, clip);
             const detail = make('g', { 'clip-path': 'url(#' + id + ')' });
+            if (face.surface === 'edge') {
+                drawCorrugation(face, screen, make, detail);
+                continue;
+            }
             function hatch(x0, x1, y0, y1) {
                 if (x1 <= x0 || y1 <= y0)
                     return;
@@ -75,7 +84,7 @@ export function mountWall() {
             }
         }
         const visibleLeft = offsetX + box[0] * scale, visibleRight = offsetX + box[2] * scale;
-        const visibleTop = offsetY + box[1] * scale, visibleBottom = offsetY + box[3] * scale;
+        const visibleTop = offsetY + box[1] * scale;
         function vDim(x, y0, y1, label, right = false) {
             line([x, y0], [x, y1]);
             for (const y of [y0, y1])
@@ -99,27 +108,27 @@ export function mountWall() {
         if (progress < .38) {
             let px = 0;
             for (const part of [70, 60, 70, 60]) {
-                const a = screen([px, upperTop, .3]), b = screen([px + part, upperTop, .3]);
+                const a = screen([px, upperTop, DISPLAY_SHEET_THICKNESS]), b = screen([px + part, upperTop, DISPLAY_SHEET_THICKNESS]);
                 hDim(a[0], b[0], visibleTop - 24, part + 'cm');
                 px += part;
             }
             if (g.join === 0) {
                 const rows = [[90, 120, '30cm'], [30, 90, '60cm'], [0, 30, '30cm']];
                 for (const [a, b, label] of rows) {
-                    vDim(visibleLeft - 12, screen([0, g.upperBottom + a, .3])[1], screen([0, g.upperBottom + b, .3])[1], label);
+                    vDim(visibleLeft - 12, screen([0, g.upperBottom + a, DISPLAY_SHEET_THICKNESS])[1], screen([0, g.upperBottom + b, DISPLAY_SHEET_THICKNESS])[1], label);
                 }
                 for (const [dy, label] of [[105, '上ふた'], [60, '側面'], [15, '下ふた']]) {
-                    const at = screen([35, g.upperBottom + dy, .3]);
+                    const at = screen([35, g.upperBottom + dy, DISPLAY_SHEET_THICKNESS]);
                     if (70 * scale >= 43)
                         text(at[0], at[1] + 4, label);
                 }
-                vDim(visibleRight + 12, screen([260, g.upperBottom, .3])[1], screen([260, upperTop, .3])[1], '120cm', true);
+                vDim(visibleRight + 12, screen([260, g.upperBottom, DISPLAY_SHEET_THICKNESS])[1], screen([260, upperTop, DISPLAY_SHEET_THICKNESS])[1], '120cm', true);
                 vDim(visibleRight + 12, screen([260, -30, 0])[1], screen([260, 90, 0])[1], '120cm', true);
             }
             else if (g.join === 1) {
                 vDim(visibleLeft - 12, screen([0, -30, 0])[1], screen([0, 150, 0])[1], '180cm');
-                vDim(visibleRight + 12, screen([260, 30, .3])[1], screen([260, 90, .3])[1], '60cm', true);
-                text(visibleRight + 8, screen([260, 90, .3])[1] - 12, '重ね代', { 'text-anchor': 'start' });
+                vDim(visibleRight + 12, screen([260, 30, DISPLAY_SHEET_THICKNESS])[1], screen([260, 90, DISPLAY_SHEET_THICKNESS])[1], '60cm', true);
+                text(visibleRight + 8, screen([260, 90, DISPLAY_SHEET_THICKNESS])[1] - 12, '重ね代', { 'text-anchor': 'start' });
             }
         }
         else {
@@ -136,7 +145,7 @@ export function mountWall() {
             text(Math.max(aa[0], bb[0]) + 8, (aa[1] + bb[1]) / 2 + 4, '30cm', { 'text-anchor': 'start' });
         }
         if (g.fold === 1 && (g.reveal === 0 || g.reveal === 1)) {
-            const unit = g.reveal === 1 ? 2 : 0, edgeX = g.starts[unit] + 260, z = unit * .8;
+            const unit = g.reveal === 1 ? 2 : 0, edgeX = g.starts[unit] + 260, z = unit * DISPLAY_SHEET_THICKNESS * 2;
             const size = Math.min(22, Math.max(8, 8 / scale));
             const corner = screen([edgeX, 0, z]);
             const up = screen([edgeX, size, z]), elbow = screen([edgeX, size, z + size]), inward = screen([edgeX, 0, z + size]);
@@ -148,11 +157,13 @@ export function mountWall() {
             text(labelX, labelY, '90°', { 'text-anchor': 'start' }, marker);
         }
         if (g.reveal === 0) {
-            hDim(screen([0, 0, 0])[0], screen([260, 0, .3])[0], visibleBottom + 24, '横260cm', true);
+            const a = screen([0, -30 * Math.cos(g.angle), 30 * Math.sin(g.angle)]);
+            const b = screen([260, -30 * Math.cos(g.angle), 30 * Math.sin(g.angle)]);
+            hDim(a[0], b[0], (a[1] + b[1]) / 2 + 24, '横260cm', true);
         }
         else if (g.reveal === 1) {
             for (let i = 0; i < 3; i++) {
-                const a = screen([g.starts[i], 150, i * .8 + .3]), b = screen([g.starts[i] + 260, 150, i * .8 + .3]);
+                const a = screen([g.starts[i], 150, i * DISPLAY_SHEET_THICKNESS * 2 + DISPLAY_SHEET_THICKNESS]), b = screen([g.starts[i] + 260, 150, i * DISPLAY_SHEET_THICKNESS * 2 + DISPLAY_SHEET_THICKNESS]);
                 const y = visibleTop - 22 - i * 27;
                 const dim = hDim(a[0], b[0], y, '260cm');
                 line(a, add(dim.a, mul(dim.normal, 5)), { 'stroke-opacity': '.35' });
@@ -160,12 +171,13 @@ export function mountWall() {
             }
             if (g.connect === 1) {
                 for (let i = 1; i < 3; i++) {
-                    const a = screen([g.starts[i], 150, i * .8 + .3]), b = screen([g.starts[i - 1] + 260, 150, i * .8 + .3]);
+                    const a = screen([g.starts[i], 150, i * DISPLAY_SHEET_THICKNESS * 2 + DISPLAY_SHEET_THICKNESS]), b = screen([g.starts[i - 1] + 260, 150, i * DISPLAY_SHEET_THICKNESS * 2 + DISPLAY_SHEET_THICKNESS]);
                     const dim = hDim(a[0], b[0], visibleTop - 110, '40cm');
                     line(a, add(dim.a, mul(dim.normal, 5)), { 'stroke-opacity': '.35' });
                     line(b, add(dim.b, mul(dim.normal, 5)), { 'stroke-opacity': '.35' });
                 }
-                hDim(screen([0, 0, 0])[0], screen([700, 0, 1.9])[0], visibleBottom + 70, '全長700cm（7m）', true);
+                const a = screen([0, 0, 30]), b = screen([700, 0, 30 + DISPLAY_SHEET_THICKNESS * 4]);
+                hDim(a[0], b[0], (a[1] + b[1]) / 2 + 70, '全長700cm（7m）', true);
             }
         }
         slider.value = String(Math.round(progress * 100));
